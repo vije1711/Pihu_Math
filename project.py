@@ -240,7 +240,12 @@ class GUI_Exam(Exam):
         self.label_num_question = Label(self.home_frame, text="Type number of Questions:", font=("Bell MT", 20), justify="left")
         self.input_num_question = Entry(self.home_frame, font=("Bell MT", 20), justify="center", width=3)
         self.start_exam_button = Button(self.home_frame, text="Start Exam!", font=("Bell MT", 14), command=self.start)
-        self.test_checkbox = Label(self.home_frame, text="Please ensure correct slections & entry!", font=("Times", 32), bg="red")
+        self.test_checkbox = Label(
+            self.home_frame,
+            text="Please ensure correct selections & entry!",
+            font=("Times", 20),
+            bg="red",
+        )
         self.exam_frame = Frame(GUI_Exam.root)
         self.status_checkbox, self.question_to_ask = None, None
         self.difficulty_chosen = None
@@ -304,7 +309,7 @@ class GUI_Exam(Exam):
         """Start the exam based on user selections."""
         self.test_checkbox.grid_forget()
         if self.checkbox_status() == "Please Select atleast One option!" or self.input_num_question.get() == "" or not str(self.input_num_question.get()).isdecimal() or int(self.input_num_question.get()) <= 0:
-            self.test_checkbox.grid(row=13, column=0, columnspan=5)
+            self.test_checkbox.grid(row=14, column=0, columnspan=5, pady=(5, 0))
         else:
             self.launch_exam_frame()
             
