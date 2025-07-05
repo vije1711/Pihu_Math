@@ -206,7 +206,7 @@ class GUI_Exam(Exam):
         self.grade = StringVar()
         self.sound_variable = StringVar()
         self.add_checkbox = Checkbutton(self.home_frame, text="Addition", variable=self.add_variable, onvalue="+", offvalue=None, font=("Bell MT", 18))
-        self.subtract_checkbox = Checkbutton(self.home_frame, text="Subraction", variable=self.subtract_variable, onvalue="-", offvalue=None, font=("Bell MT", 18))
+        self.subtract_checkbox = Checkbutton(self.home_frame, text="Subtraction", variable=self.subtract_variable, onvalue="-", offvalue=None, font=("Bell MT", 18))
         self.multiply_checkbox = Checkbutton(self.home_frame, text="Multiplication", variable=self.multiply_variable, onvalue="*", offvalue=None, font=("Bell MT", 18))
         self.divide_checkbox = Checkbutton(self.home_frame, text="Division", variable=self.divide_variable, onvalue="/", offvalue=None, font=("Bell MT", 18))
         self.fraction_checkbox = Checkbutton(self.home_frame, text="Fractions", variable=self.fraction_variable, onvalue="fraction", offvalue=None, font=("Bell MT", 18))
@@ -222,7 +222,7 @@ class GUI_Exam(Exam):
         self.question_label = Label(self.exam_frame, text=self.display_question.get(), font=("Bell MT", 35), justify="left", width=38)
         self.label_user_answer = Label(self.exam_frame, text="Type Answer Here:", font=("Bell MT", 20), justify="center")
         self.input_user_answer = Entry(self.exam_frame, font=("Bell MT", 20), justify="center", width=7)
-        self.label_user_answer_remainder = Label(self.exam_frame, text="Type Reminder Here:", font=("Bell MT", 20), justify="center")
+        self.label_user_answer_remainder = Label(self.exam_frame, text="Type Remainder Here:", font=("Bell MT", 20), justify="center")
         self.input_user_answer_remainder = Entry(self.exam_frame, font=("Bell MT", 20), justify="center", width=7)
         self.question_asked, self.exam_score = 0, 0          # To keep track of the number of questions & correct answers.
         self.start_time, self.test_start, self.question_paper = None, None, None
