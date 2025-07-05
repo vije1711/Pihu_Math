@@ -24,8 +24,8 @@ class Exam:
         _score (int): The user's score.
     """
     @classmethod
-    def quiz(cls, sign_list, difficulty):
-        """Generate a random math question based on selected operations and difficulty."""
+    def quiz(cls, sign_list):
+        """Generate a random math question based on selected operations."""
         # Remove '0' from the sign list
         while "0" in sign_list:
             sign_list.remove("0")
@@ -34,33 +34,21 @@ class Exam:
         while None in sign_list:
             sign_list.remove(None)
         S = random.choice(sign_list)
-        limits = {"Easy": 100, "Medium": 1000, "Hard": 10000}
-        limit = limits.get(difficulty, 100)
         while True:
-            X = random.randint(1, limit)
-            Y = random.randint(1, limit)
-            Z = random.randint(1, limit)
-
-            if S == "+":
-                quiz = f"{X} + {Y}"
+            # Generate random numbers based on the selected operation
+            X = random.randint(1, 10000)
+            Y = random.randint(1, 10000)
+            Z = random.randint(1, 10000)
+            
+            # Check if the generated question meets specific criteria
+            if (S == "+" and X > 1000 and Y > 1000) or (S == "-" and X > 1000 and Y > 1000 and X > Y) or (S == "*" and X > 1000 and 100> Y > 0) or (S == "/" and X > 1000 and 1 < Y < 10 and X % Y != 0):
+                quiz = f"{X} {S} {Y}"
                 break
-            elif S == "-":
-                if X > Y:
-                    quiz = f"{X} - {Y}"
-                    break
-            elif S == "*":
-                quiz = f"{X} * {Y}"
-                break
-            elif S == "/":
-                Y = random.randint(2, min(9, limit))
-                if X % Y != 0 and X > Y:
-                    quiz = f"{X} / {Y}"
-                    break
             elif S == "fraction":
                 while True:
-                    X = random.randint(3, min(99, limit))
+                    X = random.randint(3, 100)
                     Y = random.randint(2, 10)
-                    Z = random.randint(1, limit)
+                    Z = random.randint(1000, 10000)
                     if X % Y == 0 and X / Y != 1:
                         quiz = f"{X}/{Y} of {Z}"
                         break
@@ -221,9 +209,6 @@ class GUI_Exam(Exam):
         self.display_question = StringVar()
         self.grade = StringVar()
         self.sound_variable = StringVar()
-        self.difficulty_variable = StringVar(value="Easy")
-        self.difficulty_label = Label(self.home_frame, text="Select Difficulty:", font=("Bell MT", 20), justify="left")
-        self.difficulty_menu = OptionMenu(self.home_frame, self.difficulty_variable, "Easy", "Medium", "Hard")
         self.add_checkbox = Checkbutton(self.home_frame, text="Addition", variable=self.add_variable, onvalue="+", offvalue=None, font=("Bell MT", 18))
         self.subtract_checkbox = Checkbutton(self.home_frame, text="Subraction", variable=self.subtract_variable, onvalue="-", offvalue=None, font=("Bell MT", 18))
         self.multiply_checkbox = Checkbutton(self.home_frame, text="Multiplication", variable=self.multiply_variable, onvalue="*", offvalue=None, font=("Bell MT", 18))
@@ -234,11 +219,10 @@ class GUI_Exam(Exam):
         self.divide_checkbox.deselect(), self.fraction_checkbox.deselect(), self.select_all_checkbox.deselect()
         self.label_num_question = Label(self.home_frame, text="Type number of Questions:", font=("Bell MT", 20), justify="left")
         self.input_num_question = Entry(self.home_frame, font=("Bell MT", 20), justify="center", width=3)
-        self.start_exam_button = Button(self.home_frame, text="Start Exam!", font=("Bell MT", 14), command=self.start)
+        self.start_exam_button = Button(self.home_frame, text="Start Exam!", font=("Bell MT", 14), command=self.start).grid(row=12, column=0, columnspan=5)
         self.test_checkbox = Label(self.home_frame, text="Please ensure correct slections & entry!", font=("Times", 32), bg="red")
         self.exam_frame = Frame(GUI_Exam.root)
         self.status_checkbox, self.question_to_ask = None, None
-        self.difficulty_chosen = None
         self.question_label = Label(self.exam_frame, text=self.display_question.get(), font=("Bell MT", 35), justify="left", width=38)
         self.label_user_answer = Label(self.exam_frame, text="Type Answer Here:", font=("Bell MT", 20), justify="center")
         self.input_user_answer = Entry(self.exam_frame, font=("Bell MT", 20), justify="center", width=7)
@@ -255,7 +239,7 @@ class GUI_Exam(Exam):
         self.stat_frame = Frame(self.result_frame, width=350, height=475, bd=5, relief="groove")
         self.quit_button = Button(self.result_frame, text="Quit!", font=("Bell MT", 16), command=self.root.quit)
         self.sound_checkbox = Checkbutton(self.exam_frame, text="Disable Sound!", variable=self.sound_variable, onvalue="", offvalue="Enable", font=("Bell MT", 20), bd=5, relief='groove')
-        self.file_name = f"Practice_dated_{datetime.now().strftime('%d-%b-%y-%I%M')}"
+        self.file_name = f"Practice_dated_{datetime.now().strftime("%d-%b-%y-%I%M")}"
         self.file_open_mode = None
         self.pdf = None
         self.launch_home_frame()
@@ -272,13 +256,10 @@ class GUI_Exam(Exam):
         self.divide_checkbox.grid(row=8, column=2)
         self.fraction_checkbox.grid(row=8, column=3)
         self.select_all_checkbox.grid(row=8, column=4)
-        self.difficulty_label.grid(row=9, column=0, columnspan=2)
-        self.difficulty_menu.grid(row=9, column=2)
-        Label(self.home_frame, width=38, height=5).grid(row=10, column=0, columnspan=5)
-        self.label_num_question.grid(row=11, column=0, columnspan=2)
-        self.input_num_question.grid(row=11, column=2)
-        Label(self.home_frame, width=38, height=5).grid(row=12, column=0, columnspan=5)
-        self.start_exam_button.grid(row=13, column=0, columnspan=5)
+        Label(self.home_frame, width=38, height=5).grid(row=9, column=0, columnspan=5)
+        self.label_num_question.grid(row=10, column=0, columnspan=2)
+        self.input_num_question.grid(row=10, column=2)
+        Label(self.home_frame, width=38, height=5).grid(row=11, column=0, columnspan=5)
         
     def checkbox_status(self):
         if self.select_all_variable.get() == "select_all" and not self.input_num_question.get() == "" and str(self.input_num_question.get()).isdecimal() and int(self.input_num_question.get()) > 0:
@@ -306,7 +287,6 @@ class GUI_Exam(Exam):
     def launch_exam_frame(self):
         self.status_checkbox = self.checkbox_status()                 # To fetch the user selection
         self.question_to_ask = int(self.input_num_question.get())     # To fetch how many question to ask
-        self.difficulty_chosen = self.difficulty_variable.get()
         self.home_frame.pack_forget()
         self.exam_frame.pack(fill="both", expand=1)
         self.sound_checkbox.grid(row=0, column=7)
@@ -328,7 +308,7 @@ class GUI_Exam(Exam):
         """
         Generate and display a new math question.
         """
-        self.question_paper = Exam.quiz(self.status_checkbox, self.difficulty_chosen)
+        self.question_paper = Exam.quiz(self.status_checkbox)
         self.display_question.set(f"Q.{self.question_asked+1} What will be the result of {self.question_paper.question}?")
         self.question_label.config(text=self.display_question.get())
         self.question_asked += 1
@@ -623,7 +603,7 @@ class GUI_Exam(Exam):
         self.pdf.set_title("Mathematics Practice")
         self.pdf.set_author("Vijendra Singh")
         self.pdf.print_chapter(f"{self.file_name}.txt")
-        self.pdf.output(f"Worksheet_{datetime.now().strftime('%d-%b-%y-%I%M')}.pdf")
+        self.pdf.output(f"Worksheet_{datetime.now().strftime("%d-%b-%y-%I%M")}.pdf")
 
 
 class PDF(FPDF, GUI_Exam):
