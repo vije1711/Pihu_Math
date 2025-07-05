@@ -57,18 +57,25 @@ class Exam:
                     quiz = f"{X} / {Y}"
                     break
             elif S == "fraction":
-                while True:
-                    X = random.randint(3, min(99, limit))
-                    Y = random.randint(2, 10)
-                    Z = random.randint(1, limit)
-                    if X % Y == 0 and X / Y != 1:
-                        quiz = f"{X}/{Y} of {Z}"
-                        break
+                Y = random.randint(2, 8)
+                X = random.randint(1, Y - 1)
+                choices = []
+                correct = random.randint(0, 3)
+                for i in range(4):
+                    if i == correct:
+                        choices.append((X, Y))
+                    else:
+                        num = random.randint(1, Y - 1)
+                        while num == X:
+                            num = random.randint(1, Y - 1)
+                        choices.append((num, Y))
+                quiz = f"Select the diagram for {X}/{Y}"
+                Z = correct
                 break
-        return cls(quiz, X, Y, Z, S)
+        return cls(quiz, X, Y, Z, S, choices)
 
      # Initialize Exam object
-    def __init__(self, question, X, Y, Z, S):
+    def __init__(self, question, X, Y, Z, S, choices=None):
         """
         Initialize Exam object.
 
@@ -81,6 +88,7 @@ class Exam:
         """
         self.question = question
         self._X, self._Y, self._Z, self._S = X, Y, Z, S
+        self._choices = choices
         
         # Calculate the actual answer based on the operation
         if self._S == "+":
@@ -93,9 +101,13 @@ class Exam:
             self.answer_actual = int(self._X / self._Y)         # Applied 'int' Method for proper feedback dispaly on Answer Submission!
             self.answer_actual_remainder = self._X % self._Y
         elif self._S == "fraction":
-            self.answer_actual = int(self._X / self._Y) * self._Z   # Applied 'int' Method for proper feedback dispaly on Answer Submission!
+            self.answer_actual = self._Z
         self.answer_user = 0
         self.answer_user_remainder = 0
+
+    @property
+    def choices(self):
+        return self._choices
         
     @property
     def question(self):
@@ -254,6 +266,8 @@ class GUI_Exam(Exam):
         self.input_user_answer = Entry(self.exam_frame, font=("Bell MT", 20), justify="center", width=7)
         self.label_user_answer_remainder = Label(self.exam_frame, text="Type Reminder Here:", font=("Bell MT", 20), justify="center")
         self.input_user_answer_remainder = Entry(self.exam_frame, font=("Bell MT", 20), justify="center", width=7)
+        self.choice_var = IntVar()
+        self.options_frame = None
         self.question_asked, self.exam_score = 0, 0          # To keep track of the number of questions & correct answers.
         self.start_time, self.test_start, self.question_paper = None, None, None
         self.attempts_counter = 0
@@ -339,17 +353,47 @@ class GUI_Exam(Exam):
         Generate and display a new math question.
         """
         self.question_paper = Exam.quiz(self.status_checkbox, self.difficulty_chosen)
-        self.display_question.set(f"Q.{self.question_asked+1} What will be the result of {self.question_paper.question}?")
+        self.display_question.set(
+            f"Q.{self.question_asked + 1} What will be the result of {self.question_paper.question}?"
+        )
         self.question_label.config(text=self.display_question.get())
         self.question_asked += 1
+
+        if self.options_frame:
+            self.options_frame.destroy()
+            self.options_frame = None
+        self.choice_var.set(-1)
+
         if self.question_paper._S == "/":
             self.label_user_answer.config(text="Type Quotient Here:")
             self.label_user_answer_remainder.grid(row=6, column=3, rowspan=2, columnspan=2, sticky="E")
             self.input_user_answer_remainder.grid(row=6, column=5, rowspan=2, columnspan=1, sticky="W")
+            self.label_user_answer.grid(row=6, column=1, rowspan=2, columnspan=2)
+            self.input_user_answer.grid(row=6, column=2, rowspan=2, columnspan=1, sticky="E")
+        elif self.question_paper._S == "fraction":
+            self.label_user_answer.grid_forget()
+            self.input_user_answer.grid_forget()
+            self.label_user_answer_remainder.grid_forget()
+            self.input_user_answer_remainder.grid_forget()
+            self.options_frame = Frame(self.exam_frame)
+            self.options_frame.grid(row=6, column=1, columnspan=6)
+            for i, frac in enumerate(self.question_paper.choices):
+                frame = Frame(self.options_frame)
+                canvas = Canvas(frame, width=60, height=40)
+                for j in range(frac[1]):
+                    x0 = j * (60 / frac[1])
+                    x1 = (j + 1) * (60 / frac[1])
+                    color = "blue" if j < frac[0] else "white"
+                    canvas.create_rectangle(x0, 0, x1, 40, fill=color, outline="black")
+                canvas.pack()
+                Radiobutton(frame, variable=self.choice_var, value=i).pack()
+                frame.grid(row=0, column=i, padx=5)
         else:
             self.label_user_answer.config(text="Type Answer Here:")
             self.label_user_answer_remainder.grid_forget()
             self.input_user_answer_remainder.grid_forget()
+            self.label_user_answer.grid(row=6, column=1, rowspan=2, columnspan=2)
+            self.input_user_answer.grid(row=6, column=2, rowspan=2, columnspan=1, sticky="E")
     
     def check_user_answer(self):
         """
@@ -362,6 +406,11 @@ class GUI_Exam(Exam):
             else:
                 messagebox.showerror("Input Error", "Please type Numbers only!")
                 return
+        elif self.question_paper._S == "fraction":
+            if self.choice_var.get() == -1:
+                messagebox.showerror("Input Error", "Please select an option!")
+                return
+            self.question_paper.answer_user = self.choice_var.get()
         else:
             if self.input_user_answer.get().isdecimal():
                 self.question_paper.answer_user = int(self.input_user_answer.get())
@@ -380,6 +429,11 @@ class GUI_Exam(Exam):
             if self.question_paper._S == "/":
                 self.evaluation_feedback.config(
                     text=f"Correct!, For {self.question_paper.question}, the Quotient is {self.question_paper.answer_actual} & Remainder is {self.question_paper.answer_actual_remainder}",
+                    bg="green",
+                )
+            elif self.question_paper._S == "fraction":
+                self.evaluation_feedback.config(
+                    text="Correct!",
                     bg="green",
                 )
             else:
@@ -427,15 +481,24 @@ class GUI_Exam(Exam):
                         )
                         GUI_Exam.engine.runAndWait()
                 else:
-                    self.evaluation_feedback.config(
-                        text=f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}",
-                        bg="red",
-                    )
-                    if self.sound_variable.get() != "":
-                        GUI_Exam.engine.say(
-                            f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}"
+                    if self.question_paper._S == "fraction":
+                        self.evaluation_feedback.config(
+                            text="Incorrect!",
+                            bg="red",
                         )
-                        GUI_Exam.engine.runAndWait()
+                        if self.sound_variable.get() != "":
+                            GUI_Exam.engine.say("Incorrect!")
+                            GUI_Exam.engine.runAndWait()
+                    else:
+                        self.evaluation_feedback.config(
+                            text=f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}",
+                            bg="red",
+                        )
+                        if self.sound_variable.get() != "":
+                            GUI_Exam.engine.say(
+                                f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}"
+                            )
+                            GUI_Exam.engine.runAndWait()
                 self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
                 self.attempts_counter += 1
                 if self.sound_variable.get() != "":
@@ -595,9 +658,16 @@ class GUI_Exam(Exam):
             self.file_open_mode = "a"
         if self.test_end == None:
             a = self.display_question.get()
-            b = f"Your Answer: {self.input_user_answer.get()}"
+            if self.question_paper._S == "fraction":
+                b = f"Your Answer: Option {self.choice_var.get()+1}"
+            else:
+                b = f"Your Answer: {self.input_user_answer.get()}"
             c = f"Remainder: {self.input_user_answer_remainder.get()}" if self.question_paper._S == "/" else None
-            d = f"You answered Correctly in Attempt No.: {self.attempts_counter+1}" if self.attempts_counter < 3 else f"You answered this question incorrectly!"
+            d = (
+                f"You answered Correctly in Attempt No.: {self.attempts_counter+1}"
+                if self.attempts_counter < 3
+                else f"You answered this question incorrectly!"
+            )
         else:
             a = f"Score: {self.exam_score}\nTotal Questions: {self.question_asked}\nPercent Marks: {round(self.exam_score/self.question_asked*100, 2)}%.\n{self.grade.get()}"
             b = f"Test Dated: {self.start_time.strftime('%d-%B-%Y')}\nTest Started: {self.test_start}"
