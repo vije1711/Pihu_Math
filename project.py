@@ -263,7 +263,13 @@ class GUI_Exam(Exam):
         self.exam_frame = Frame(GUI_Exam.root)
         self.status_checkbox, self.question_to_ask = None, None
         self.difficulty_chosen = None
-        self.question_label = Label(self.exam_frame, text=self.display_question.get(), font=("Bell MT", 35), justify="left", width=38)
+        self.question_label = Label(
+            self.exam_frame,
+            text=self.display_question.get(),
+            font=("Bell MT", 35),
+            justify="left",
+            wraplength=1000,
+        )
         self.label_user_answer = Label(self.exam_frame, text="Type Answer Here:", font=("Bell MT", 20), justify="center")
         self.input_user_answer = Entry(self.exam_frame, font=("Bell MT", 20), justify="center", width=7)
         self.label_user_answer_remainder = Label(self.exam_frame, text="Type Reminder Here:", font=("Bell MT", 20), justify="center")
