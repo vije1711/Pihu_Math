@@ -1,6 +1,6 @@
 # MathQuest Adventures
 
-MathQuest Adventures is a Python GUI application for practicing basic arithmetic skills. It lets users select the types of questions (addition, subtraction, multiplication, division and fractions), specify how many to attempt and provides instant feedback. The app can speak results using `pyttsx3` and will create a text log and optional PDF report of your session.
+MathQuest Adventures is a Python GUI application for practicing basic arithmetic skills. It lets users select the types of questions (addition, subtraction, multiplication, division and fractions), specify how many to attempt and provides instant feedback. The app can speak results using `pyttsx3` with a more natural sounding voice and will create a text log and optional PDF report of your session.
 
 ## Requirements
 - Python 3

@@ -184,10 +184,15 @@ class GUI_Exam(Exam):
     """    
     
     engine = pyttsx3.init()
-    voices = engine.getProperty('voices')                               #getting details of current voice
-    engine.setProperty('voice', voices[random.choice([0,1])].id)        #changing index, changes voices. 1 for female
-    rate = engine.getProperty('rate')                                   # getting details of current speaking rate
-    engine.setProperty('rate', 185)                                     # setting up new voice rate
+    voices = engine.getProperty('voices')                               # getting details of available voices
+    preferred = next((v for v in voices if "english" in v.name.lower()), voices[0])
+    engine.setProperty('voice', preferred.id)                           # pick an English voice if available
+    engine.setProperty('rate', 170)                                     # slightly slower for natural speech
+    engine.setProperty('volume', 1.0)
+    try:
+        engine.setProperty('pitch', 75)                                 # espeak supports pitch
+    except Exception:
+        pass
     
     root = Tk()
     
