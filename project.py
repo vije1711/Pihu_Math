@@ -1,6 +1,7 @@
 # Importing necessary libraries and modules
 import random
 import pyttsx3
+from fractions import Fraction
 from tkinter import *
 from tkinter import messagebox
 from datetime import datetime
@@ -41,13 +42,17 @@ class Exam:
                 quiz = f"{X} {S} {Y}"
                 break
             elif S == "fraction":
-                while True:
-                    X = random.randint(3, 100)
-                    Y = random.randint(2, 10)
-                    Z = random.randint(1000, 10000)
-                    if X % Y == 0 and X / Y != 1:
-                        quiz = f"{X}/{Y} of {Z}"
-                        break
+                frac_ops = ["+", "-", "*", "/"]
+                op = random.choice(frac_ops)
+                a = random.randint(1, 9)
+                b = random.randint(2, 9)
+                c = random.randint(1, 9)
+                d = random.randint(2, 9)
+                quiz = f"{a}/{b} {op} {c}/{d}"
+                X = a
+                Y = b
+                Z = (c, d)
+                S = f"f{op}"
                 break
         return cls(quiz, X, Y, Z, S)
 
@@ -77,7 +82,18 @@ class Exam:
             self.answer_actual = int(self._X / self._Y)         # Applied 'int' Method for proper feedback dispaly on Answer Submission!
             self.answer_actual_remainder = self._X % self._Y
         elif self._S == "fraction":
-            self.answer_actual = int(self._X / self._Y) * self._Z   # Applied 'int' Method for proper feedback dispaly on Answer Submission!
+            self.answer_actual = int(self._X / self._Y) * self._Z
+        elif self._S in ["f+", "f-", "f*", "f/"]:
+            frac1 = Fraction(self._X, self._Y)
+            frac2 = Fraction(self._Z[0], self._Z[1])
+            if self._S == "f+":
+                self.answer_actual = frac1 + frac2
+            elif self._S == "f-":
+                self.answer_actual = frac1 - frac2
+            elif self._S == "f*":
+                self.answer_actual = frac1 * frac2
+            elif self._S == "f/":
+                self.answer_actual = frac1 / frac2
         self.answer_user = 0
         self.answer_user_remainder = 0
         
@@ -315,7 +331,13 @@ class GUI_Exam(Exam):
         """
         Check the user's answer and provide feedback.
         """
-        if str(self.input_user_answer.get()).isdecimal() or str(self.input_user_answer_remainder.get()).isdecimal():
+        if self.question_paper._S in ["f+", "f-", "f*", "f/"]:
+            try:
+                self.question_paper.answer_user = Fraction(self.input_user_answer.get())
+            except Exception:
+                messagebox.showerror("Input Error", "Please type a valid fraction like 1/2")
+                return
+        elif str(self.input_user_answer.get()).isdecimal() or str(self.input_user_answer_remainder.get()).isdecimal():
             self.question_paper.answer_user = int(self.input_user_answer.get())
             if self.question_paper._S == "/":
                 self.question_paper.answer_user_remainder = int(self.input_user_answer_remainder.get())
@@ -369,6 +391,7 @@ class GUI_Exam(Exam):
                         GUI_Exam.engine.runAndWait()
         else:
             messagebox.showerror("Input Error", "Please type Numbers only!")
+            return
 
         # Check if all questions have been asked
         if self.question_asked < self.question_to_ask and (self.evaluation_result == True or self.attempts_counter > 2):
