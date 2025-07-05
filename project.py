@@ -603,6 +603,7 @@ class GUI_Exam(Exam):
             b = f"Test Dated: {self.start_time.strftime('%d-%B-%Y')}\nTest Started: {self.test_start}"
             c = f"Test Ended: {self.test_end}"
             d = f"Exam Duration: {round((self.end_time - self.start_time).total_seconds()/60, 2)} minutes"
+            e = f"Difficulty Level: {self.difficulty_chosen}"
         with open(f"{self.file_name}.txt", (self.file_open_mode)) as file:
             if a!= None and b==None and c==None and d==None:
                 file.write(str(f"{a}\n\n"))
@@ -622,6 +623,8 @@ class GUI_Exam(Exam):
                 file.write(str(f"{d}\n\n"))
                 return
             elif a!= None and b!=None and c!=None and d!=None:
+                if self.test_end is not None:
+                    file.write(str(f"{e}\n"))
                 file.write(str(f"{a}\n"))
                 file.write(str(f"{b}\n"))
                 file.write(str(f"{c}\n"))
