@@ -36,6 +36,7 @@ class Exam:
         S = random.choice(sign_list)
         limits = {"Easy": 100, "Medium": 1000, "Hard": 10000}
         limit = limits.get(difficulty, 100)
+        choices = None
         while True:
             X = random.randint(1, limit)
             Y = random.randint(1, limit)
