@@ -29,6 +29,10 @@ class Exam:
         # Remove '0' from the sign list
         while "0" in sign_list:
             sign_list.remove("0")
+        while "" in sign_list:
+            sign_list.remove("")
+        while None in sign_list:
+            sign_list.remove(None)
         S = random.choice(sign_list)
         while True:
             # Generate random numbers based on the selected operation
@@ -260,8 +264,14 @@ class GUI_Exam(Exam):
     def checkbox_status(self):
         if self.select_all_variable.get() == "select_all" and not self.input_num_question.get() == "" and str(self.input_num_question.get()).isdecimal() and int(self.input_num_question.get()) > 0:
             self.add_variable.set("+"), self.subtract_variable.set("-"), self.multiply_variable.set("*"), self.divide_variable.set("/"), self.fraction_variable.set("fraction")
-        status_list = [self.add_variable.get(), self.subtract_variable.get(), self.multiply_variable.get(), self.divide_variable.get(), self.fraction_variable.get()]
-        if all(item == "0" or item is None for item in status_list):
+        status_list = [
+            self.add_variable.get(),
+            self.subtract_variable.get(),
+            self.multiply_variable.get(),
+            self.divide_variable.get(),
+            self.fraction_variable.get(),
+        ]
+        if all(item in ("0", "", None) for item in status_list):
             return "Please Select atleast One option!"
         else:
             return [self.add_variable.get(), self.subtract_variable.get(), self.multiply_variable.get(), self.divide_variable.get(), self.fraction_variable.get()]
@@ -315,60 +325,92 @@ class GUI_Exam(Exam):
         """
         Check the user's answer and provide feedback.
         """
-        if str(self.input_user_answer.get()).isdecimal() or str(self.input_user_answer_remainder.get()).isdecimal():
-            self.question_paper.answer_user = int(self.input_user_answer.get())
-            if self.question_paper._S == "/":
+        if self.question_paper._S == "/":
+            if self.input_user_answer.get().isdecimal() and self.input_user_answer_remainder.get().isdecimal():
+                self.question_paper.answer_user = int(self.input_user_answer.get())
                 self.question_paper.answer_user_remainder = int(self.input_user_answer_remainder.get())
-            self.evaluation_result = evaluate(self.question_paper.answer_user,
-                                            self.question_paper.answer_actual,
-                                            self.question_paper.answer_user_remainder,
-                                            self.question_paper.answer_actual_remainder if self.question_paper._S =="/" else None,
-                                            self.question_paper._S)
-            if self.evaluation_result == True:
-                if self.question_paper._S == "/":
-                    self.evaluation_feedback.config(text=f"Correct!, For {self.question_paper.question}, the Quotient is {self.question_paper.answer_actual} & Remainder is {self.question_paper.answer_actual_remainder}", bg="green")
-                else:
-                    self.evaluation_feedback.config(text=f"Correct!, {self.question_paper.question} is {self.question_paper.answer_actual}", bg="green")
-                self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
-                self.exam_score += 1
-                if self.sound_variable.get() != "":
-                    GUI_Exam.engine.say(self.for_correct_answer())
-                    GUI_Exam.engine.runAndWait()
             else:
-                if self.attempts_counter == 0:
-                    self.evaluation_feedback.config(text="Your Answer is Incorrect, you've got 2 more attempts!", bg="teal")
-                    self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
-                    self.attempts_counter += 1
-                    if self.sound_variable.get() != "":
-                        GUI_Exam.engine.say(self.for_incorrect_answer())
-                        GUI_Exam.engine.runAndWait()
-                elif self.attempts_counter == 1:
-                    self.evaluation_feedback.grid_forget()
-                    self.evaluation_feedback.config(text="Your Answer is Incorrect, it's the last attempt!", bg="yellow")
-                    self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
-                    self.attempts_counter += 1
-                    if self.sound_variable.get() != "":
-                        GUI_Exam.engine.say(self.for_incorrect_answer())
-                        GUI_Exam.engine.runAndWait()
-                elif self.attempts_counter == 2:
-                    self.evaluation_feedback.grid_forget()
-                    if self.question_paper._S == "/":
-                        self.evaluation_feedback.config(text=f"Incorrect!, For {self.question_paper.question} the Quotient is {self.question_paper.answer_actual} & Remainder is {self.question_paper.answer_actual_remainder} not {self.question_paper.answer_user} & {self.question_paper.answer_user_remainder}", bg="red")
-                        if self.sound_variable.get() != "":
-                            GUI_Exam.engine.say(f"Incorrect!, For {self.question_paper.question} the Quotient is {self.question_paper.answer_actual} & Remainder is {self.question_paper.answer_actual_remainder}")
-                            GUI_Exam.engine.runAndWait()
-                    else:
-                        self.evaluation_feedback.config(text=f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}", bg="red")
-                        if self.sound_variable.get() != "":
-                            GUI_Exam.engine.say(f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}")
-                            GUI_Exam.engine.runAndWait()
-                    self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
-                    self.attempts_counter += 1
-                    if self.sound_variable.get() != "":
-                        GUI_Exam.engine.say(self.for_failed_attempt())
-                        GUI_Exam.engine.runAndWait()
+                messagebox.showerror("Input Error", "Please type Numbers only!")
+                return
         else:
-            messagebox.showerror("Input Error", "Please type Numbers only!")
+            if self.input_user_answer.get().isdecimal():
+                self.question_paper.answer_user = int(self.input_user_answer.get())
+            else:
+                messagebox.showerror("Input Error", "Please type Numbers only!")
+                return
+
+        self.evaluation_result = evaluate(
+            self.question_paper.answer_user,
+            self.question_paper.answer_actual,
+            self.question_paper.answer_user_remainder,
+            self.question_paper.answer_actual_remainder if self.question_paper._S == "/" else None,
+            self.question_paper._S,
+        )
+        if self.evaluation_result == True:
+            if self.question_paper._S == "/":
+                self.evaluation_feedback.config(
+                    text=f"Correct!, For {self.question_paper.question}, the Quotient is {self.question_paper.answer_actual} & Remainder is {self.question_paper.answer_actual_remainder}",
+                    bg="green",
+                )
+            else:
+                self.evaluation_feedback.config(
+                    text=f"Correct!, {self.question_paper.question} is {self.question_paper.answer_actual}",
+                    bg="green",
+                )
+            self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+            self.exam_score += 1
+            if self.sound_variable.get() != "":
+                GUI_Exam.engine.say(self.for_correct_answer())
+                GUI_Exam.engine.runAndWait()
+        else:
+            if self.attempts_counter == 0:
+                self.evaluation_feedback.config(
+                    text="Your Answer is Incorrect, you've got 2 more attempts!",
+                    bg="teal",
+                )
+                self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+                self.attempts_counter += 1
+                if self.sound_variable.get() != "":
+                    GUI_Exam.engine.say(self.for_incorrect_answer())
+                    GUI_Exam.engine.runAndWait()
+            elif self.attempts_counter == 1:
+                self.evaluation_feedback.grid_forget()
+                self.evaluation_feedback.config(
+                    text="Your Answer is Incorrect, it's the last attempt!",
+                    bg="yellow",
+                )
+                self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+                self.attempts_counter += 1
+                if self.sound_variable.get() != "":
+                    GUI_Exam.engine.say(self.for_incorrect_answer())
+                    GUI_Exam.engine.runAndWait()
+            elif self.attempts_counter == 2:
+                self.evaluation_feedback.grid_forget()
+                if self.question_paper._S == "/":
+                    self.evaluation_feedback.config(
+                        text=f"Incorrect!, For {self.question_paper.question} the Quotient is {self.question_paper.answer_actual} & Remainder is {self.question_paper.answer_actual_remainder} not {self.question_paper.answer_user} & {self.question_paper.answer_user_remainder}",
+                        bg="red",
+                    )
+                    if self.sound_variable.get() != "":
+                        GUI_Exam.engine.say(
+                            f"Incorrect!, For {self.question_paper.question} the Quotient is {self.question_paper.answer_actual} & Remainder is {self.question_paper.answer_actual_remainder}"
+                        )
+                        GUI_Exam.engine.runAndWait()
+                else:
+                    self.evaluation_feedback.config(
+                        text=f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}",
+                        bg="red",
+                    )
+                    if self.sound_variable.get() != "":
+                        GUI_Exam.engine.say(
+                            f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}"
+                        )
+                        GUI_Exam.engine.runAndWait()
+                self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+                self.attempts_counter += 1
+                if self.sound_variable.get() != "":
+                    GUI_Exam.engine.say(self.for_failed_attempt())
+                    GUI_Exam.engine.runAndWait()
 
         # Check if all questions have been asked
         if self.question_asked < self.question_to_ask and (self.evaluation_result == True or self.attempts_counter > 2):
