@@ -57,18 +57,20 @@ class Exam:
                     quiz = f"{X} / {Y}"
                     break
             elif S == "fraction":
-                Y = random.randint(2, 8)
+                # ensure we have enough unique numerators for 4 options
+                Y = random.randint(5, 8)
                 X = random.randint(1, Y - 1)
-                choices = []
                 correct = random.randint(0, 3)
+                available_nums = [n for n in range(1, Y) if n != X]
+                wrong_nums = random.sample(available_nums, 3)
+                choices = []
+                wrong_idx = 0
                 for i in range(4):
                     if i == correct:
                         choices.append((X, Y))
                     else:
-                        num = random.randint(1, Y - 1)
-                        while num == X:
-                            num = random.randint(1, Y - 1)
-                        choices.append((num, Y))
+                        choices.append((wrong_nums[wrong_idx], Y))
+                        wrong_idx += 1
                 quiz = f"Select the diagram for {X}/{Y}"
                 Z = correct
                 break
