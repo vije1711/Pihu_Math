@@ -235,7 +235,7 @@ class GUI_Exam(Exam):
         self.stat_frame = Frame(self.result_frame, width=350, height=475, bd=5, relief="groove")
         self.quit_button = Button(self.result_frame, text="Quit!", font=("Bell MT", 16), command=self.root.quit)
         self.sound_checkbox = Checkbutton(self.exam_frame, text="Disable Sound!", variable=self.sound_variable, onvalue="", offvalue="Enable", font=("Bell MT", 20), bd=5, relief='groove')
-        self.file_name = f"Practice_dated_{datetime.now().strftime("%d-%b-%y-%I%M")}"
+        self.file_name = f"Practice_dated_{datetime.now().strftime('%d-%b-%y-%I%M')}"
         self.file_open_mode = None
         self.pdf = None
         self.launch_home_frame()
@@ -561,7 +561,7 @@ class GUI_Exam(Exam):
         self.pdf.set_title("Mathematics Practice")
         self.pdf.set_author("Vijendra Singh")
         self.pdf.print_chapter(f"{self.file_name}.txt")
-        self.pdf.output(f"Worksheet_{datetime.now().strftime("%d-%b-%y-%I%M")}.pdf")
+        self.pdf.output(f"Worksheet_{datetime.now().strftime('%d-%b-%y-%I%M')}.pdf")
 
 
 class PDF(FPDF, GUI_Exam):
