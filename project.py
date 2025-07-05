@@ -1,7 +1,6 @@
 # Importing necessary libraries and modules
 import random
 import pyttsx3
-from fractions import Fraction
 from tkinter import *
 from tkinter import messagebox
 from datetime import datetime
@@ -25,39 +24,61 @@ class Exam:
         _score (int): The user's score.
     """
     @classmethod
-    def quiz(cls, sign_list):
-        """Generate a random math question based on selected operations."""
+    def quiz(cls, sign_list, difficulty):
+        """Generate a random math question based on selected operations and difficulty."""
         # Remove '0' from the sign list
         while "0" in sign_list:
             sign_list.remove("0")
+        while "" in sign_list:
+            sign_list.remove("")
+        while None in sign_list:
+            sign_list.remove(None)
         S = random.choice(sign_list)
+        limits = {"Easy": 100, "Medium": 1000, "Hard": 10000}
+        limit = limits.get(difficulty, 100)
+        choices = None
         while True:
-            # Generate random numbers based on the selected operation
-            X = random.randint(1, 10000)
-            Y = random.randint(1, 10000)
-            Z = random.randint(1, 10000)
-            
-            # Check if the generated question meets specific criteria
-            if (S == "+" and X > 1000 and Y > 1000) or (S == "-" and X > 1000 and Y > 1000 and X > Y) or (S == "*" and X > 1000 and 100> Y > 0) or (S == "/" and X > 1000 and 1 < Y < 10 and X % Y != 0):
-                quiz = f"{X} {S} {Y}"
+            X = random.randint(1, limit)
+            Y = random.randint(1, limit)
+            Z = random.randint(1, limit)
+
+            if S == "+":
+                quiz = f"{X} + {Y}"
                 break
+            elif S == "-":
+                if X > Y:
+                    quiz = f"{X} - {Y}"
+                    break
+            elif S == "*":
+                quiz = f"{X} * {Y}"
+                break
+            elif S == "/":
+                Y = random.randint(2, min(9, limit))
+                if X % Y != 0 and X > Y:
+                    quiz = f"{X} / {Y}"
+                    break
             elif S == "fraction":
-                frac_ops = ["+", "-", "*", "/"]
-                op = random.choice(frac_ops)
-                a = random.randint(1, 9)
-                b = random.randint(2, 9)
-                c = random.randint(1, 9)
-                d = random.randint(2, 9)
-                quiz = f"{a}/{b} {op} {c}/{d}"
-                X = a
-                Y = b
-                Z = (c, d)
-                S = f"f{op}"
+                # ensure we have enough unique numerators for 4 options
+                Y = random.randint(5, 8)
+                X = random.randint(1, Y - 1)
+                correct = random.randint(0, 3)
+                available_nums = [n for n in range(1, Y) if n != X]
+                wrong_nums = random.sample(available_nums, 3)
+                choices = []
+                wrong_idx = 0
+                for i in range(4):
+                    if i == correct:
+                        choices.append((X, Y))
+                    else:
+                        choices.append((wrong_nums[wrong_idx], Y))
+                        wrong_idx += 1
+                quiz = f"Select the diagram for {X}/{Y}"
+                Z = correct
                 break
-        return cls(quiz, X, Y, Z, S)
+        return cls(quiz, X, Y, Z, S, choices)
 
      # Initialize Exam object
-    def __init__(self, question, X, Y, Z, S):
+    def __init__(self, question, X, Y, Z, S, choices=None):
         """
         Initialize Exam object.
 
@@ -70,6 +91,7 @@ class Exam:
         """
         self.question = question
         self._X, self._Y, self._Z, self._S = X, Y, Z, S
+        self._choices = choices
         
         # Calculate the actual answer based on the operation
         if self._S == "+":
@@ -82,20 +104,13 @@ class Exam:
             self.answer_actual = int(self._X / self._Y)         # Applied 'int' Method for proper feedback dispaly on Answer Submission!
             self.answer_actual_remainder = self._X % self._Y
         elif self._S == "fraction":
-            self.answer_actual = int(self._X / self._Y) * self._Z
-        elif self._S in ["f+", "f-", "f*", "f/"]:
-            frac1 = Fraction(self._X, self._Y)
-            frac2 = Fraction(self._Z[0], self._Z[1])
-            if self._S == "f+":
-                self.answer_actual = frac1 + frac2
-            elif self._S == "f-":
-                self.answer_actual = frac1 - frac2
-            elif self._S == "f*":
-                self.answer_actual = frac1 * frac2
-            elif self._S == "f/":
-                self.answer_actual = frac1 / frac2
+            self.answer_actual = self._Z
         self.answer_user = 0
         self.answer_user_remainder = 0
+
+    @property
+    def choices(self):
+        return self._choices
         
     @property
     def question(self):
@@ -184,10 +199,15 @@ class GUI_Exam(Exam):
     """    
     
     engine = pyttsx3.init()
-    voices = engine.getProperty('voices')                               #getting details of current voice
-    engine.setProperty('voice', voices[random.choice([0,1])].id)        #changing index, changes voices. 1 for female
-    rate = engine.getProperty('rate')                                   # getting details of current speaking rate
-    engine.setProperty('rate', 185)                                     # setting up new voice rate
+    voices = engine.getProperty('voices')                               # getting details of available voices
+    preferred = next((v for v in voices if "english" in v.name.lower()), voices[0])
+    engine.setProperty('voice', preferred.id)                           # pick an English voice if available
+    engine.setProperty('rate', 170)                                     # slightly slower for natural speech
+    engine.setProperty('volume', 1.0)
+    try:
+        engine.setProperty('pitch', 75)                                 # espeak supports pitch
+    except Exception:
+        pass
     
     root = Tk()
     
@@ -221,8 +241,11 @@ class GUI_Exam(Exam):
         self.display_question = StringVar()
         self.grade = StringVar()
         self.sound_variable = StringVar()
+        self.difficulty_variable = StringVar(value="Easy")
+        self.difficulty_label = Label(self.home_frame, text="Select Difficulty:", font=("Bell MT", 20), justify="left")
+        self.difficulty_menu = OptionMenu(self.home_frame, self.difficulty_variable, "Easy", "Medium", "Hard")
         self.add_checkbox = Checkbutton(self.home_frame, text="Addition", variable=self.add_variable, onvalue="+", offvalue=None, font=("Bell MT", 18))
-        self.subtract_checkbox = Checkbutton(self.home_frame, text="Subtraction", variable=self.subtract_variable, onvalue="-", offvalue=None, font=("Bell MT", 18))
+        self.subtract_checkbox = Checkbutton(self.home_frame, text="Subraction", variable=self.subtract_variable, onvalue="-", offvalue=None, font=("Bell MT", 18))
         self.multiply_checkbox = Checkbutton(self.home_frame, text="Multiplication", variable=self.multiply_variable, onvalue="*", offvalue=None, font=("Bell MT", 18))
         self.divide_checkbox = Checkbutton(self.home_frame, text="Division", variable=self.divide_variable, onvalue="/", offvalue=None, font=("Bell MT", 18))
         self.fraction_checkbox = Checkbutton(self.home_frame, text="Fractions", variable=self.fraction_variable, onvalue="fraction", offvalue=None, font=("Bell MT", 18))
@@ -231,15 +254,29 @@ class GUI_Exam(Exam):
         self.divide_checkbox.deselect(), self.fraction_checkbox.deselect(), self.select_all_checkbox.deselect()
         self.label_num_question = Label(self.home_frame, text="Type number of Questions:", font=("Bell MT", 20), justify="left")
         self.input_num_question = Entry(self.home_frame, font=("Bell MT", 20), justify="center", width=3)
-        self.start_exam_button = Button(self.home_frame, text="Start Exam!", font=("Bell MT", 14), command=self.start).grid(row=12, column=0, columnspan=5)
-        self.test_checkbox = Label(self.home_frame, text="Please ensure correct slections & entry!", font=("Times", 32), bg="red")
+        self.start_exam_button = Button(self.home_frame, text="Start Exam!", font=("Bell MT", 14), command=self.start)
+        self.test_checkbox = Label(
+            self.home_frame,
+            text="Please ensure correct selections & entry!",
+            font=("Times", 20),
+            bg="red",
+        )
         self.exam_frame = Frame(GUI_Exam.root)
         self.status_checkbox, self.question_to_ask = None, None
-        self.question_label = Label(self.exam_frame, text=self.display_question.get(), font=("Bell MT", 35), justify="left", width=38)
+        self.difficulty_chosen = None
+        self.question_label = Label(
+            self.exam_frame,
+            text=self.display_question.get(),
+            font=("Bell MT", 35),
+            justify="left",
+            wraplength=1000,
+        )
         self.label_user_answer = Label(self.exam_frame, text="Type Answer Here:", font=("Bell MT", 20), justify="center")
         self.input_user_answer = Entry(self.exam_frame, font=("Bell MT", 20), justify="center", width=7)
-        self.label_user_answer_remainder = Label(self.exam_frame, text="Type Remainder Here:", font=("Bell MT", 20), justify="center")
+        self.label_user_answer_remainder = Label(self.exam_frame, text="Type Reminder Here:", font=("Bell MT", 20), justify="center")
         self.input_user_answer_remainder = Entry(self.exam_frame, font=("Bell MT", 20), justify="center", width=7)
+        self.choice_var = IntVar()
+        self.options_frame = None
         self.question_asked, self.exam_score = 0, 0          # To keep track of the number of questions & correct answers.
         self.start_time, self.test_start, self.question_paper = None, None, None
         self.attempts_counter = 0
@@ -268,16 +305,25 @@ class GUI_Exam(Exam):
         self.divide_checkbox.grid(row=8, column=2)
         self.fraction_checkbox.grid(row=8, column=3)
         self.select_all_checkbox.grid(row=8, column=4)
-        Label(self.home_frame, width=38, height=5).grid(row=9, column=0, columnspan=5)
-        self.label_num_question.grid(row=10, column=0, columnspan=2)
-        self.input_num_question.grid(row=10, column=2)
-        Label(self.home_frame, width=38, height=5).grid(row=11, column=0, columnspan=5)
+        self.difficulty_label.grid(row=9, column=0, columnspan=2)
+        self.difficulty_menu.grid(row=9, column=2)
+        Label(self.home_frame, width=38, height=5).grid(row=10, column=0, columnspan=5)
+        self.label_num_question.grid(row=11, column=0, columnspan=2)
+        self.input_num_question.grid(row=11, column=2)
+        Label(self.home_frame, width=38, height=5).grid(row=12, column=0, columnspan=5)
+        self.start_exam_button.grid(row=13, column=0, columnspan=5)
         
     def checkbox_status(self):
         if self.select_all_variable.get() == "select_all" and not self.input_num_question.get() == "" and str(self.input_num_question.get()).isdecimal() and int(self.input_num_question.get()) > 0:
             self.add_variable.set("+"), self.subtract_variable.set("-"), self.multiply_variable.set("*"), self.divide_variable.set("/"), self.fraction_variable.set("fraction")
-        status_list = [self.add_variable.get(), self.subtract_variable.get(), self.multiply_variable.get(), self.divide_variable.get(), self.fraction_variable.get()]
-        if all(item == "0" or item is None for item in status_list):
+        status_list = [
+            self.add_variable.get(),
+            self.subtract_variable.get(),
+            self.multiply_variable.get(),
+            self.divide_variable.get(),
+            self.fraction_variable.get(),
+        ]
+        if all(item in ("0", "", None) for item in status_list):
             return "Please Select atleast One option!"
         else:
             return [self.add_variable.get(), self.subtract_variable.get(), self.multiply_variable.get(), self.divide_variable.get(), self.fraction_variable.get()]
@@ -286,13 +332,14 @@ class GUI_Exam(Exam):
         """Start the exam based on user selections."""
         self.test_checkbox.grid_forget()
         if self.checkbox_status() == "Please Select atleast One option!" or self.input_num_question.get() == "" or not str(self.input_num_question.get()).isdecimal() or int(self.input_num_question.get()) <= 0:
-            self.test_checkbox.grid(row=13, column=0, columnspan=5)
+            self.test_checkbox.grid(row=14, column=0, columnspan=5, pady=(5, 0))
         else:
             self.launch_exam_frame()
             
     def launch_exam_frame(self):
         self.status_checkbox = self.checkbox_status()                 # To fetch the user selection
         self.question_to_ask = int(self.input_num_question.get())     # To fetch how many question to ask
+        self.difficulty_chosen = self.difficulty_variable.get()
         self.home_frame.pack_forget()
         self.exam_frame.pack(fill="both", expand=1)
         self.sound_checkbox.grid(row=0, column=7)
@@ -314,84 +361,159 @@ class GUI_Exam(Exam):
         """
         Generate and display a new math question.
         """
-        self.question_paper = Exam.quiz(self.status_checkbox)
-        self.display_question.set(f"Q.{self.question_asked+1} What will be the result of {self.question_paper.question}?")
+        self.question_paper = Exam.quiz(self.status_checkbox, self.difficulty_chosen)
+        self.display_question.set(
+            f"Q.{self.question_asked + 1} What will be the result of {self.question_paper.question}?"
+        )
         self.question_label.config(text=self.display_question.get())
         self.question_asked += 1
+
+        if self.options_frame:
+            self.options_frame.destroy()
+            self.options_frame = None
+        self.choice_var.set(-1)
+
         if self.question_paper._S == "/":
             self.label_user_answer.config(text="Type Quotient Here:")
             self.label_user_answer_remainder.grid(row=6, column=3, rowspan=2, columnspan=2, sticky="E")
             self.input_user_answer_remainder.grid(row=6, column=5, rowspan=2, columnspan=1, sticky="W")
+            self.label_user_answer.grid(row=6, column=1, rowspan=2, columnspan=2)
+            self.input_user_answer.grid(row=6, column=2, rowspan=2, columnspan=1, sticky="E")
+        elif self.question_paper._S == "fraction":
+            self.label_user_answer.grid_forget()
+            self.input_user_answer.grid_forget()
+            self.label_user_answer_remainder.grid_forget()
+            self.input_user_answer_remainder.grid_forget()
+            self.options_frame = Frame(self.exam_frame)
+            self.options_frame.grid(row=6, column=1, columnspan=6)
+            for i, frac in enumerate(self.question_paper.choices):
+                frame = Frame(self.options_frame)
+                canvas_width, canvas_height = 80, 50
+                canvas = Canvas(frame, width=canvas_width, height=canvas_height)
+                for j in range(frac[1]):
+                    x0 = j * (canvas_width / frac[1])
+                    x1 = (j + 1) * (canvas_width / frac[1])
+                    color = "blue" if j < frac[0] else "white"
+                    canvas.create_rectangle(x0, 0, x1, canvas_height, fill=color, outline="black")
+                canvas.pack()
+                Radiobutton(frame, variable=self.choice_var, value=i).pack()
+                frame.grid(row=0, column=i, padx=5)
         else:
             self.label_user_answer.config(text="Type Answer Here:")
             self.label_user_answer_remainder.grid_forget()
             self.input_user_answer_remainder.grid_forget()
+            self.label_user_answer.grid(row=6, column=1, rowspan=2, columnspan=2)
+            self.input_user_answer.grid(row=6, column=2, rowspan=2, columnspan=1, sticky="E")
     
     def check_user_answer(self):
         """
         Check the user's answer and provide feedback.
         """
-        if self.question_paper._S in ["f+", "f-", "f*", "f/"]:
-            try:
-                self.question_paper.answer_user = Fraction(self.input_user_answer.get())
-            except Exception:
-                messagebox.showerror("Input Error", "Please type a valid fraction like 1/2")
-                return
-        elif str(self.input_user_answer.get()).isdecimal() or str(self.input_user_answer_remainder.get()).isdecimal():
-            self.question_paper.answer_user = int(self.input_user_answer.get())
-            if self.question_paper._S == "/":
+        if self.question_paper._S == "/":
+            if self.input_user_answer.get().isdecimal() and self.input_user_answer_remainder.get().isdecimal():
+                self.question_paper.answer_user = int(self.input_user_answer.get())
                 self.question_paper.answer_user_remainder = int(self.input_user_answer_remainder.get())
-            self.evaluation_result = evaluate(self.question_paper.answer_user,
-                                            self.question_paper.answer_actual,
-                                            self.question_paper.answer_user_remainder,
-                                            self.question_paper.answer_actual_remainder if self.question_paper._S =="/" else None,
-                                            self.question_paper._S)
-            if self.evaluation_result == True:
-                if self.question_paper._S == "/":
-                    self.evaluation_feedback.config(text=f"Correct!, For {self.question_paper.question}, the Quotient is {self.question_paper.answer_actual} & Remainder is {self.question_paper.answer_actual_remainder}", bg="green")
-                else:
-                    self.evaluation_feedback.config(text=f"Correct!, {self.question_paper.question} is {self.question_paper.answer_actual}", bg="green")
-                self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
-                self.exam_score += 1
-                if self.sound_variable.get() != "":
-                    GUI_Exam.engine.say(self.for_correct_answer())
-                    GUI_Exam.engine.runAndWait()
             else:
-                if self.attempts_counter == 0:
-                    self.evaluation_feedback.config(text="Your Answer is Incorrect, you've got 2 more attempts!", bg="teal")
-                    self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
-                    self.attempts_counter += 1
+                messagebox.showerror("Input Error", "Please type Numbers only!")
+                return
+        elif self.question_paper._S == "fraction":
+            if self.choice_var.get() == -1:
+                messagebox.showerror("Input Error", "Please select an option!")
+                return
+            self.question_paper.answer_user = self.choice_var.get()
+        else:
+            if self.input_user_answer.get().isdecimal():
+                self.question_paper.answer_user = int(self.input_user_answer.get())
+            else:
+                messagebox.showerror("Input Error", "Please type Numbers only!")
+                return
+
+        self.evaluation_result = evaluate(
+            self.question_paper.answer_user,
+            self.question_paper.answer_actual,
+            self.question_paper.answer_user_remainder,
+            self.question_paper.answer_actual_remainder if self.question_paper._S == "/" else None,
+            self.question_paper._S,
+        )
+        if self.evaluation_result == True:
+            if self.question_paper._S == "/":
+                self.evaluation_feedback.config(
+                    text=f"Correct!, For {self.question_paper.question}, the Quotient is {self.question_paper.answer_actual} & Remainder is {self.question_paper.answer_actual_remainder}",
+                    bg="green",
+                )
+            elif self.question_paper._S == "fraction":
+                self.evaluation_feedback.config(
+                    text="Correct!",
+                    bg="green",
+                )
+            else:
+                self.evaluation_feedback.config(
+                    text=f"Correct!, {self.question_paper.question} is {self.question_paper.answer_actual}",
+                    bg="green",
+                )
+            self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+            self.exam_score += 1
+            if self.sound_variable.get() != "":
+                GUI_Exam.engine.say(self.for_correct_answer())
+                GUI_Exam.engine.runAndWait()
+        else:
+            if self.attempts_counter == 0:
+                self.evaluation_feedback.config(
+                    text="Your Answer is Incorrect, you've got 2 more attempts!",
+                    bg="teal",
+                )
+                self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+                self.attempts_counter += 1
+                if self.sound_variable.get() != "":
+                    GUI_Exam.engine.say(self.for_incorrect_answer())
+                    GUI_Exam.engine.runAndWait()
+            elif self.attempts_counter == 1:
+                self.evaluation_feedback.grid_forget()
+                self.evaluation_feedback.config(
+                    text="Your Answer is Incorrect, it's the last attempt!",
+                    bg="yellow",
+                )
+                self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+                self.attempts_counter += 1
+                if self.sound_variable.get() != "":
+                    GUI_Exam.engine.say(self.for_incorrect_answer())
+                    GUI_Exam.engine.runAndWait()
+            elif self.attempts_counter == 2:
+                self.evaluation_feedback.grid_forget()
+                if self.question_paper._S == "/":
+                    self.evaluation_feedback.config(
+                        text=f"Incorrect!, For {self.question_paper.question} the Quotient is {self.question_paper.answer_actual} & Remainder is {self.question_paper.answer_actual_remainder} not {self.question_paper.answer_user} & {self.question_paper.answer_user_remainder}",
+                        bg="red",
+                    )
                     if self.sound_variable.get() != "":
-                        GUI_Exam.engine.say(self.for_incorrect_answer())
+                        GUI_Exam.engine.say(
+                            f"Incorrect!, For {self.question_paper.question} the Quotient is {self.question_paper.answer_actual} & Remainder is {self.question_paper.answer_actual_remainder}"
+                        )
                         GUI_Exam.engine.runAndWait()
-                elif self.attempts_counter == 1:
-                    self.evaluation_feedback.grid_forget()
-                    self.evaluation_feedback.config(text="Your Answer is Incorrect, it's the last attempt!", bg="yellow")
-                    self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
-                    self.attempts_counter += 1
-                    if self.sound_variable.get() != "":
-                        GUI_Exam.engine.say(self.for_incorrect_answer())
-                        GUI_Exam.engine.runAndWait()
-                elif self.attempts_counter == 2:
-                    self.evaluation_feedback.grid_forget()
-                    if self.question_paper._S == "/":
-                        self.evaluation_feedback.config(text=f"Incorrect!, For {self.question_paper.question} the Quotient is {self.question_paper.answer_actual} & Remainder is {self.question_paper.answer_actual_remainder} not {self.question_paper.answer_user} & {self.question_paper.answer_user_remainder}", bg="red")
+                else:
+                    if self.question_paper._S == "fraction":
+                        self.evaluation_feedback.config(
+                            text="Incorrect!",
+                            bg="red",
+                        )
                         if self.sound_variable.get() != "":
-                            GUI_Exam.engine.say(f"Incorrect!, For {self.question_paper.question} the Quotient is {self.question_paper.answer_actual} & Remainder is {self.question_paper.answer_actual_remainder}")
+                            GUI_Exam.engine.say("Incorrect!")
                             GUI_Exam.engine.runAndWait()
                     else:
-                        self.evaluation_feedback.config(text=f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}", bg="red")
+                        self.evaluation_feedback.config(
+                            text=f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}",
+                            bg="red",
+                        )
                         if self.sound_variable.get() != "":
-                            GUI_Exam.engine.say(f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}")
+                            GUI_Exam.engine.say(
+                                f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}"
+                            )
                             GUI_Exam.engine.runAndWait()
-                    self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
-                    self.attempts_counter += 1
-                    if self.sound_variable.get() != "":
-                        GUI_Exam.engine.say(self.for_failed_attempt())
-                        GUI_Exam.engine.runAndWait()
-        else:
-            messagebox.showerror("Input Error", "Please type Numbers only!")
-            return
+                self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+                self.attempts_counter += 1
+                if self.sound_variable.get() != "":
+                    GUI_Exam.engine.say(self.for_failed_attempt())
+                    GUI_Exam.engine.runAndWait()
 
         # Check if all questions have been asked
         if self.question_asked < self.question_to_ask and (self.evaluation_result == True or self.attempts_counter > 2):
@@ -546,14 +668,22 @@ class GUI_Exam(Exam):
             self.file_open_mode = "a"
         if self.test_end == None:
             a = self.display_question.get()
-            b = f"Your Answer: {self.input_user_answer.get()}"
+            if self.question_paper._S == "fraction":
+                b = f"Your Answer: Option {self.choice_var.get()+1}"
+            else:
+                b = f"Your Answer: {self.input_user_answer.get()}"
             c = f"Remainder: {self.input_user_answer_remainder.get()}" if self.question_paper._S == "/" else None
-            d = f"You answered Correctly in Attempt No.: {self.attempts_counter+1}" if self.attempts_counter < 3 else f"You answered this question incorrectly!"
+            d = (
+                f"You answered Correctly in Attempt No.: {self.attempts_counter+1}"
+                if self.attempts_counter < 3
+                else f"You answered this question incorrectly!"
+            )
         else:
             a = f"Score: {self.exam_score}\nTotal Questions: {self.question_asked}\nPercent Marks: {round(self.exam_score/self.question_asked*100, 2)}%.\n{self.grade.get()}"
             b = f"Test Dated: {self.start_time.strftime('%d-%B-%Y')}\nTest Started: {self.test_start}"
             c = f"Test Ended: {self.test_end}"
             d = f"Exam Duration: {round((self.end_time - self.start_time).total_seconds()/60, 2)} minutes"
+            e = f"Difficulty Level: {self.difficulty_chosen}"
         with open(f"{self.file_name}.txt", (self.file_open_mode)) as file:
             if a!= None and b==None and c==None and d==None:
                 file.write(str(f"{a}\n\n"))
@@ -573,6 +703,8 @@ class GUI_Exam(Exam):
                 file.write(str(f"{d}\n\n"))
                 return
             elif a!= None and b!=None and c!=None and d!=None:
+                if self.test_end is not None:
+                    file.write(str(f"{e}\n"))
                 file.write(str(f"{a}\n"))
                 file.write(str(f"{b}\n"))
                 file.write(str(f"{c}\n"))
