@@ -21,7 +21,7 @@ Launch the exam interface with:
 python project.py
 ```
 
-Select your desired operations, choose a difficulty level (Easy, Medium or Hard) and specify the number of questions, then start the exam. After completion you can save a PDF report summarizing your results. A checkbox labeled **Factors & Prime Count** enables quiz questions that ask how many factors a given number has, reporting whether it is prime or composite.
+Select your desired operations, choose a difficulty level (Easy, Medium or Hard) and specify the number of questions, then start the exam. Available modes include basic arithmetic, fractions, prime factorization, HCF and the new **LCM** practice. After completion you can save a PDF report summarizing your results. A checkbox labeled **Factors & Prime Count** enables quiz questions that ask how many factors a given number has, reporting whether it is prime or composite.
 
 ## Repository contents
 - `project.py` – main program containing the GUI and quiz logic.
