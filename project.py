@@ -340,7 +340,17 @@ class GUI_Exam(Exam):
         """
         self.bg_color = "#F0F8FF"
         self.home_frame = Frame(GUI_Exam.root, bg=self.bg_color)
-        self.container = Frame(self.home_frame, bg=self.bg_color)
+        # canvas + scrollbar for scrollable home screen
+        self.home_canvas = Canvas(self.home_frame, bg=self.bg_color, highlightthickness=0)
+        self.home_scrollbar = Scrollbar(self.home_frame, orient="vertical", command=self.home_canvas.yview)
+        self.home_canvas.configure(yscrollcommand=self.home_scrollbar.set)
+        self.home_scroll_frame = Frame(self.home_canvas, bg=self.bg_color)
+        self.home_canvas.create_window((0, 0), window=self.home_scroll_frame, anchor="nw")
+        self.home_scroll_frame.bind(
+            "<Configure>",
+            lambda e: self._update_scrollregion(),
+        )
+        self.container = Frame(self.home_scroll_frame, bg=self.bg_color)
         self.banner_label = Label(self.container, text="🧮", font=("Comic Sans MS", 60), bg=self.bg_color)
         self.home_label = Label(
             self.container,
@@ -590,7 +600,13 @@ class GUI_Exam(Exam):
                 
     def launch_home_frame(self):
         self.home_frame.pack(fill="both", expand=1)
+        # pack scrollable canvas and scrollbar
+        self.home_canvas.pack(side="left", fill="both", expand=True)
+        self.home_scrollbar.pack(side="right", fill="y")
         self.container.pack(expand=True)
+        self.home_canvas.yview_moveto(0)
+        self.home_frame.update_idletasks()
+        self._update_scrollregion()
 
         # banner and title
         self.banner_label.grid(row=0, column=0, columnspan=2, pady=(20, 10))
@@ -627,6 +643,29 @@ class GUI_Exam(Exam):
         self.input_num_question.grid(row=6, column=1, sticky="w")
         self.start_exam_button.grid(row=7, column=0, columnspan=2, pady=(20, 5))
         self.factor_mode_button.grid(row=8, column=0, columnspan=2, pady=(5, 10))
+
+        # bind mousewheel scrolling for canvas
+        self.home_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+        self.home_canvas.bind_all("<Button-4>", self._on_mousewheel)
+        self.home_canvas.bind_all("<Button-5>", self._on_mousewheel)
+
+    def _on_mousewheel(self, event):
+        """Scroll the canvas vertically on mouse wheel events."""
+        if event.delta:
+            self.home_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        elif event.num == 4:
+            self.home_canvas.yview_scroll(-1, "units")
+        elif event.num == 5:
+            self.home_canvas.yview_scroll(1, "units")
+
+    def _update_scrollregion(self):
+        """Update canvas scrollregion and toggle scrollbar."""
+        self.home_canvas.configure(scrollregion=self.home_canvas.bbox("all"))
+        region = self.home_canvas.bbox("all")
+        if region and region[3] <= self.home_canvas.winfo_height():
+            self.home_scrollbar.configure(state=DISABLED)
+        else:
+            self.home_scrollbar.configure(state=NORMAL)
 
     def checkbox_status(self):
         if self.select_all_variable.get() == "select_all" and not self.input_num_question.get() == "" and str(self.input_num_question.get()).isdecimal() and int(self.input_num_question.get()) > 0:
@@ -675,6 +714,9 @@ class GUI_Exam(Exam):
 
     def launch_factor_mode(self):
         self.home_frame.pack_forget()
+        self.home_canvas.unbind_all("<MouseWheel>")
+        self.home_canvas.unbind_all("<Button-4>")
+        self.home_canvas.unbind_all("<Button-5>")
         self.factor_frame = Frame(GUI_Exam.root)
         self.factor_frame.pack(fill="both", expand=1)
         self.factor_count = 0
@@ -731,6 +773,9 @@ class GUI_Exam(Exam):
         self.question_to_ask = int(self.input_num_question.get())     # To fetch how many question to ask
         self.difficulty_chosen = self.difficulty_variable.get()
         self.home_frame.pack_forget()
+        self.home_canvas.unbind_all("<MouseWheel>")
+        self.home_canvas.unbind_all("<Button-4>")
+        self.home_canvas.unbind_all("<Button-5>")
         self.exam_frame.pack(fill="both", expand=1)
         self.sound_checkbox.grid(row=0, column=7)
         self.sound_checkbox.deselect()
