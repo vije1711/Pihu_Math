@@ -1,5 +1,7 @@
 # Importing necessary libraries and modules
 import random
+import re
+from collections import Counter
 import pyttsx3
 from tkinter import *
 from tkinter import messagebox
@@ -19,7 +21,8 @@ class Exam:
         _S (str): The type of operation.
         answer_actual (int): The actual answer.
         answer_actual_remainder (int): The remainder for division problems.
-        answer_user (int): The user's answer.
+        answer_user (int | list[int]): The user's answer. May be a list for
+            prime factorization questions.
         answer_user_remainder (int): The user's remainder for division problems.
         _score (int): The user's score.
     """
@@ -91,6 +94,16 @@ class Exam:
                 quiz = f"How many factors does {X} have?"
                 Z = factors_of(X)
                 break
+            elif S == "prime_factorization":
+                while True:
+                    X = random.randint(30, 150)
+                    pf = prime_factorization(X)
+                    if len(set(pf)) >= 3:
+                        method = random.choice(["factor tree", "division"])
+                        quiz = f"What are the prime factors of {X} using the {method} method?"
+                        Z = pf
+                        break
+                break
         return cls(quiz, X, Y, Z, S, choices)
 
      # Initialize Exam object
@@ -126,6 +139,8 @@ class Exam:
             self.is_prime = len(self._Z) == 2
             self.twin_pair = twin_prime_pair(self._X)
             self.answer_actual = len(self._Z)
+        elif self._S == "prime_factorization":
+            self.answer_actual = self._Z
         self.answer_user = 0
         self.answer_user_remainder = 0
 
@@ -164,8 +179,11 @@ class Exam:
     
     @answer_user.setter
     def answer_user(self, answer_user):
-        if answer_user >=0:
-                self._answer_user = answer_user
+        """Set the user's answer."""
+        if isinstance(answer_user, list):
+            self._answer_user = answer_user
+        elif answer_user >= 0:
+            self._answer_user = answer_user
 
     @property
     def answer_user_remainder(self):
@@ -259,6 +277,7 @@ class GUI_Exam(Exam):
         self.divide_variable = StringVar()
         self.fraction_variable = StringVar()
         self.factors_primes_variable = StringVar()
+        self.prime_factor_variable = StringVar()
         self.select_all_variable = StringVar()
         self.display_question = StringVar()
         self.grade = StringVar()
@@ -279,9 +298,17 @@ class GUI_Exam(Exam):
             offvalue=None,
             font=("Bell MT", 18),
         )
+        self.prime_factor_checkbox = Checkbutton(
+            self.home_frame,
+            text="Prime Factorization",
+            variable=self.prime_factor_variable,
+            onvalue="prime_factorization",
+            offvalue=None,
+            font=("Bell MT", 18),
+        )
         self.select_all_checkbox = Checkbutton(self.home_frame, text="All of the above!", variable=self.select_all_variable, onvalue="select_all", offvalue=None, font=("Bell MT", 18))
         self.add_checkbox.deselect(), self.subtract_checkbox.deselect(), self.multiply_checkbox.deselect()
-        self.divide_checkbox.deselect(), self.fraction_checkbox.deselect(), self.factors_primes_checkbox.deselect(), self.select_all_checkbox.deselect()
+        self.divide_checkbox.deselect(), self.fraction_checkbox.deselect(), self.factors_primes_checkbox.deselect(), self.prime_factor_checkbox.deselect(), self.select_all_checkbox.deselect()
         self.label_num_question = Label(self.home_frame, text="Type number of Questions:", font=("Bell MT", 20), justify="left")
         self.input_num_question = Entry(self.home_frame, font=("Bell MT", 20), justify="center", width=3)
         self.start_exam_button = Button(self.home_frame, text="Start Exam!", font=("Bell MT", 14), command=self.start)
@@ -341,7 +368,8 @@ class GUI_Exam(Exam):
         self.divide_checkbox.grid(row=8, column=2)
         self.fraction_checkbox.grid(row=8, column=3)
         self.factors_primes_checkbox.grid(row=8, column=4)
-        self.select_all_checkbox.grid(row=8, column=5)
+        self.prime_factor_checkbox.grid(row=8, column=5)
+        self.select_all_checkbox.grid(row=8, column=6)
         self.difficulty_label.grid(row=9, column=0, columnspan=2)
         self.difficulty_menu.grid(row=9, column=2)
         Label(self.home_frame, width=38, height=5).grid(row=10, column=0, columnspan=5)
@@ -359,6 +387,7 @@ class GUI_Exam(Exam):
             self.divide_variable.set("/")
             self.fraction_variable.set("fraction")
             self.factors_primes_variable.set("factors_primes")
+            self.prime_factor_variable.set("prime_factorization")
         status_list = [
             self.add_variable.get(),
             self.subtract_variable.get(),
@@ -366,6 +395,7 @@ class GUI_Exam(Exam):
             self.divide_variable.get(),
             self.fraction_variable.get(),
             self.factors_primes_variable.get(),
+            self.prime_factor_variable.get(),
         ]
         if all(item in ("0", "", None) for item in status_list):
             return "Please Select atleast One option!"
@@ -377,6 +407,7 @@ class GUI_Exam(Exam):
                 self.divide_variable.get(),
                 self.fraction_variable.get(),
                 self.factors_primes_variable.get(),
+                self.prime_factor_variable.get(),
             ]
     
     def start(self):
@@ -552,6 +583,12 @@ class GUI_Exam(Exam):
                     columnspan=1,
                     sticky="W",
                 )
+        elif self.question_paper._S == "prime_factorization":
+            self.label_user_answer.config(text="Enter prime factors:")
+            self.label_user_answer_remainder.grid_forget()
+            self.input_user_answer_remainder.grid_forget()
+            self.label_user_answer.grid(row=6, column=1, rowspan=2, columnspan=1, sticky="E")
+            self.input_user_answer.grid(row=6, column=2, rowspan=2, columnspan=1, sticky="W")
         else:
             self.label_user_answer.config(text="Type Answer Here:")
             self.label_user_answer_remainder.grid_forget()
@@ -600,6 +637,15 @@ class GUI_Exam(Exam):
             else:
                 messagebox.showerror("Input Error", "Please type Numbers only!")
                 return
+        elif self.question_paper._S == "prime_factorization":
+            parsed = parse_factor_input(self.input_user_answer.get())
+            if parsed is None:
+                messagebox.showerror(
+                    "Input Error",
+                    "Please enter prime factors separated by ×, * or spaces",
+                )
+                return
+            self.question_paper.answer_user = parsed
         else:
             if self.input_user_answer.get().isdecimal():
                 self.question_paper.answer_user = int(self.input_user_answer.get())
@@ -610,6 +656,12 @@ class GUI_Exam(Exam):
         if self.question_paper._S == "factors_primes":
             self.evaluation_result = (
                 self.question_paper.answer_user == self.question_paper.answer_actual
+            )
+        elif self.question_paper._S == "prime_factorization":
+            user = Counter(self.question_paper.answer_user)
+            actual = Counter(self.question_paper.answer_actual)
+            self.evaluation_result = (
+                user == actual and all(is_prime(f) for f in self.question_paper.answer_user)
             )
         else:
             self.evaluation_result = evaluate(
@@ -659,6 +711,14 @@ class GUI_Exam(Exam):
                     GUI_Exam.engine.say(self.for_correct_answer())
                     GUI_Exam.engine.say(explanation)
                     GUI_Exam.engine.runAndWait()
+            elif self.question_paper._S == "prime_factorization":
+                ans = " × ".join(map(str, sorted(self.question_paper.answer_actual)))
+                msg = f"Correct! Prime factorization of {self.question_paper._X} is {ans}"
+                self.evaluation_feedback.config(text=msg, bg="green")
+                if self.sound_variable.get() != "":
+                    GUI_Exam.engine.say(self.for_correct_answer())
+                    GUI_Exam.engine.say(msg)
+                    GUI_Exam.engine.runAndWait()
             else:
                 self.evaluation_feedback.config(
                     text=f"Correct!, {self.question_paper.question} is {self.question_paper.answer_actual}",
@@ -667,7 +727,7 @@ class GUI_Exam(Exam):
             self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
             self.exam_score += 1
             if self.sound_variable.get() != "":
-                if self.question_paper._S != "factors_primes":
+                if self.question_paper._S not in ["factors_primes", "prime_factorization"]:
                     GUI_Exam.engine.say(self.for_correct_answer())
                     GUI_Exam.engine.runAndWait()
         else:
@@ -745,6 +805,13 @@ class GUI_Exam(Exam):
                         )
                         if self.sound_variable.get() != "":
                             GUI_Exam.engine.say(f"Incorrect! {explanation}")
+                            GUI_Exam.engine.runAndWait()
+                    elif self.question_paper._S == "prime_factorization":
+                        ans = " × ".join(map(str, sorted(self.question_paper.answer_actual)))
+                        msg = f"Incorrect. The correct prime factorization of {self.question_paper._X} is {ans}"
+                        self.evaluation_feedback.config(text=msg, bg="red")
+                        if self.sound_variable.get() != "":
+                            GUI_Exam.engine.say(msg)
                             GUI_Exam.engine.runAndWait()
                     else:
                         self.evaluation_feedback.config(
@@ -1081,6 +1148,30 @@ def twin_prime_pair(n: int):
     if n + 2 <= 100 and is_prime(n + 2):
         return (n, n + 2)
     return None
+
+
+def prime_factorization(n: int):
+    """Return the list of prime factors for *n* including multiplicities."""
+    factors = []
+    divisor = 2
+    while divisor * divisor <= n:
+        while n % divisor == 0:
+            factors.append(divisor)
+            n //= divisor
+        divisor += 1
+    if n > 1:
+        factors.append(n)
+    return factors
+
+
+def parse_factor_input(text: str):
+    """Parse user entered prime factors separated by ×, *, or spaces."""
+    parts = [p for p in re.split(r"[×*\s]+", text.strip()) if p]
+    if not parts:
+        return None
+    if not all(part.isdigit() for part in parts):
+        return None
+    return [int(p) for p in parts]
 
 
 def tell_grade(grade):
