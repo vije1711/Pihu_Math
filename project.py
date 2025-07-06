@@ -284,7 +284,12 @@ class GUI_Exam(Exam):
         )
         self.label_user_answer = Label(self.exam_frame, text="Type Answer Here:", font=("Bell MT", 20), justify="center")
         self.input_user_answer = Entry(self.exam_frame, font=("Bell MT", 20), justify="center", width=7)
-        self.label_user_answer_remainder = Label(self.exam_frame, text="Type Reminder Here:", font=("Bell MT", 20), justify="center")
+        self.label_user_answer_remainder = Label(
+            self.exam_frame,
+            text="Type Remainder Here:",
+            font=("Bell MT", 20),
+            justify="center",
+        )
         self.input_user_answer_remainder = Entry(self.exam_frame, font=("Bell MT", 20), justify="center", width=7)
         self.choice_var = IntVar()
         self.options_frame = None
@@ -358,9 +363,9 @@ class GUI_Exam(Exam):
         Label(self.exam_frame, width=38, height=5).grid(row=1, column=0, columnspan=5)
         self.question_label.grid(row=2, column=1, rowspan=2, columnspan=5, sticky=W)
         Label(self.exam_frame, width=38, height=5).grid(row=5, column=0, columnspan=5)
-        self.label_user_answer.grid(row=6, column=1, rowspan=2, columnspan=2)
+        self.label_user_answer.grid(row=6, column=1, rowspan=2, columnspan=1, sticky="E")
         Label(self.exam_frame, width=38, height=5).grid(row=5, column=0, columnspan=5)
-        self.input_user_answer.grid(row=6, column=2, rowspan=2, columnspan=1, sticky="E")
+        self.input_user_answer.grid(row=6, column=2, rowspan=2, columnspan=1, sticky="W")
         self.start_time = datetime.now()
         self.test_start = self.start_time.strftime("%I:%M%p")
         Label(self.exam_frame, width=38, height=5).grid(row=9, column=0, columnspan=5)
@@ -386,10 +391,34 @@ class GUI_Exam(Exam):
 
         if self.question_paper._S == "/":
             self.label_user_answer.config(text="Type Quotient Here:")
-            self.label_user_answer_remainder.grid(row=6, column=3, rowspan=2, columnspan=2, sticky="E")
-            self.input_user_answer_remainder.grid(row=6, column=5, rowspan=2, columnspan=1, sticky="W")
-            self.label_user_answer.grid(row=6, column=1, rowspan=2, columnspan=2)
-            self.input_user_answer.grid(row=6, column=2, rowspan=2, columnspan=1, sticky="E")
+            self.label_user_answer_remainder.grid(
+                row=6,
+                column=3,
+                rowspan=2,
+                columnspan=1,
+                sticky="E",
+            )
+            self.input_user_answer_remainder.grid(
+                row=6,
+                column=4,
+                rowspan=2,
+                columnspan=1,
+                sticky="W",
+            )
+            self.label_user_answer.grid(
+                row=6,
+                column=1,
+                rowspan=2,
+                columnspan=1,
+                sticky="E",
+            )
+            self.input_user_answer.grid(
+                row=6,
+                column=2,
+                rowspan=2,
+                columnspan=1,
+                sticky="W",
+            )
         elif self.question_paper._S == "fraction":
             if self.question_paper.choices:
                 self.label_user_answer.grid_forget()
@@ -414,14 +443,38 @@ class GUI_Exam(Exam):
                 self.label_user_answer.config(text="Type Answer Here:")
                 self.label_user_answer_remainder.grid_forget()
                 self.input_user_answer_remainder.grid_forget()
-                self.label_user_answer.grid(row=6, column=1, rowspan=2, columnspan=2)
-                self.input_user_answer.grid(row=6, column=2, rowspan=2, columnspan=1, sticky="E")
+                self.label_user_answer.grid(
+                    row=6,
+                    column=1,
+                    rowspan=2,
+                    columnspan=1,
+                    sticky="E",
+                )
+                self.input_user_answer.grid(
+                    row=6,
+                    column=2,
+                    rowspan=2,
+                    columnspan=1,
+                    sticky="W",
+                )
         else:
             self.label_user_answer.config(text="Type Answer Here:")
             self.label_user_answer_remainder.grid_forget()
             self.input_user_answer_remainder.grid_forget()
-            self.label_user_answer.grid(row=6, column=1, rowspan=2, columnspan=2)
-            self.input_user_answer.grid(row=6, column=2, rowspan=2, columnspan=1, sticky="E")
+            self.label_user_answer.grid(
+                row=6,
+                column=1,
+                rowspan=2,
+                columnspan=1,
+                sticky="E",
+            )
+            self.input_user_answer.grid(
+                row=6,
+                column=2,
+                rowspan=2,
+                columnspan=1,
+                sticky="W",
+            )
     
     def check_user_answer(self):
         """
