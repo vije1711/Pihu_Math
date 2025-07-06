@@ -663,9 +663,11 @@ class GUI_Exam(Exam):
         self.home_canvas.configure(scrollregion=self.home_canvas.bbox("all"))
         region = self.home_canvas.bbox("all")
         if region and region[3] <= self.home_canvas.winfo_height():
-            self.home_scrollbar.configure(state=DISABLED)
+            if self.home_scrollbar.winfo_ismapped():
+                self.home_scrollbar.pack_forget()
         else:
-            self.home_scrollbar.configure(state=NORMAL)
+            if not self.home_scrollbar.winfo_ismapped():
+                self.home_scrollbar.pack(side="right", fill="y")
 
     def checkbox_status(self):
         if self.select_all_variable.get() == "select_all" and not self.input_num_question.get() == "" and str(self.input_num_question.get()).isdecimal() and int(self.input_num_question.get()) > 0:
