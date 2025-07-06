@@ -134,6 +134,36 @@ class Exam:
                 obj.numbers = nums
                 obj.method = method
                 return obj
+            elif S == "lcm":
+                nums = random.sample(range(6, 41), random.choice([2, 3]))
+                method = random.choice([
+                    "listing multiples",
+                    "prime factorization",
+                    "division method",
+                ])
+                if len(nums) == 2:
+                    X, Y = nums
+                    Z = None
+                else:
+                    X, Y, Z = nums
+                if len(nums) == 3:
+                    num_text = f"{nums[0]}, {nums[1]}, and {nums[2]}"
+                else:
+                    num_text = f"{nums[0]} and {nums[1]}"
+                method_text = (
+                    "by listing multiples"
+                    if method == "listing multiples"
+                    else (
+                        "using prime factorization"
+                        if method == "prime factorization"
+                        else "using the division method"
+                    )
+                )
+                quiz = f"Find the LCM of {num_text} {method_text}."
+                obj = cls(quiz, X, Y, Z, S, choices)
+                obj.numbers = nums
+                obj.method = method
+                return obj
         return cls(quiz, X, Y, Z, S, choices)
 
      # Initialize Exam object
@@ -177,6 +207,9 @@ class Exam:
                 self.answer_actual = gcd(gcd(self._X, self._Y), self._Z)
             else:
                 self.answer_actual = gcd(self._X, self._Y)
+        elif self._S == "lcm":
+            nums = [self._X, self._Y] if self._Z is None else [self._X, self._Y, self._Z]
+            self.answer_actual = lcm_of_numbers(nums)
         self.answer_user = 0
         self.answer_user_remainder = 0
 
@@ -315,6 +348,7 @@ class GUI_Exam(Exam):
         self.factors_primes_variable = StringVar()
         self.prime_factor_variable = StringVar()
         self.hcf_variable = StringVar()
+        self.lcm_variable = StringVar()
         self.select_all_variable = StringVar()
         self.display_question = StringVar()
         self.grade = StringVar()
@@ -351,9 +385,17 @@ class GUI_Exam(Exam):
             offvalue=None,
             font=("Bell MT", 18),
         )
+        self.lcm_checkbox = Checkbutton(
+            self.home_frame,
+            text="LCM",
+            variable=self.lcm_variable,
+            onvalue="lcm",
+            offvalue=None,
+            font=("Bell MT", 18),
+        )
         self.select_all_checkbox = Checkbutton(self.home_frame, text="All of the above!", variable=self.select_all_variable, onvalue="select_all", offvalue=None, font=("Bell MT", 18))
         self.add_checkbox.deselect(), self.subtract_checkbox.deselect(), self.multiply_checkbox.deselect()
-        self.divide_checkbox.deselect(), self.fraction_checkbox.deselect(), self.factors_primes_checkbox.deselect(), self.prime_factor_checkbox.deselect(), self.hcf_checkbox.deselect(), self.select_all_checkbox.deselect()
+        self.divide_checkbox.deselect(), self.fraction_checkbox.deselect(), self.factors_primes_checkbox.deselect(), self.prime_factor_checkbox.deselect(), self.hcf_checkbox.deselect(), self.lcm_checkbox.deselect(), self.select_all_checkbox.deselect()
         self.label_num_question = Label(self.home_frame, text="Type number of Questions:", font=("Bell MT", 20), justify="left")
         self.input_num_question = Entry(self.home_frame, font=("Bell MT", 20), justify="center", width=3)
         self.start_exam_button = Button(self.home_frame, text="Start Exam!", font=("Bell MT", 14), command=self.start)
@@ -389,7 +431,12 @@ class GUI_Exam(Exam):
         self.start_time, self.test_start, self.question_paper = None, None, None
         self.attempts_counter = 0
         self.check_button = Button(self.exam_frame, text="Submit", font=("Bell MT", 16),command=self.check_user_answer)
-        self.evaluation_feedback = Label(self.exam_frame, font=("Bell MT", 20), justify="center")
+        self.evaluation_feedback = Label(
+            self.exam_frame,
+            font=("Bell MT", 20),
+            justify="left",
+            wraplength=900,
+        )
         self.evaluation_result, self.end_time, self.test_end = None, None, None
         self.result_frame = Frame(self.root)
         self.grade_label = Label(self.result_frame, font=("Bell MT", 50), justify="center", width=38)
@@ -415,6 +462,7 @@ class GUI_Exam(Exam):
         self.factors_primes_checkbox.grid(row=8, column=4)
         self.prime_factor_checkbox.grid(row=9, column=2)
         self.hcf_checkbox.grid(row=9, column=3)
+        self.lcm_checkbox.grid(row=9, column=4)
         self.select_all_checkbox.grid(row=10, column=0, columnspan=5)
         self.difficulty_label.grid(row=11, column=0, columnspan=2)
         self.difficulty_menu.grid(row=11, column=2)
@@ -435,6 +483,7 @@ class GUI_Exam(Exam):
             self.factors_primes_variable.set("factors_primes")
             self.prime_factor_variable.set("prime_factorization")
             self.hcf_variable.set("hcf")
+            self.lcm_variable.set("lcm")
         status_list = [
             self.add_variable.get(),
             self.subtract_variable.get(),
@@ -444,6 +493,7 @@ class GUI_Exam(Exam):
             self.factors_primes_variable.get(),
             self.prime_factor_variable.get(),
             self.hcf_variable.get(),
+            self.lcm_variable.get(),
         ]
         if all(item in ("0", "", None) for item in status_list):
             return "Please Select atleast One option!"
@@ -457,6 +507,7 @@ class GUI_Exam(Exam):
                 self.factors_primes_variable.get(),
                 self.prime_factor_variable.get(),
                 self.hcf_variable.get(),
+                self.lcm_variable.get(),
             ]
     
     def start(self):
@@ -786,12 +837,26 @@ class GUI_Exam(Exam):
                     GUI_Exam.engine.say(self.for_correct_answer())
                     GUI_Exam.engine.say(msg)
                     GUI_Exam.engine.runAndWait()
+            elif self.question_paper._S == "lcm":
+                nums = self.question_paper.numbers
+                if len(nums) == 3:
+                    ntext = f"{nums[0]}, {nums[1]}, and {nums[2]}"
+                else:
+                    ntext = f"{nums[0]} and {nums[1]}"
+                explanation = lcm_explanation(nums, self.question_paper.method)
+                msg = f"Correct! The LCM of {ntext} is {self.question_paper.answer_actual}."
+                self.evaluation_feedback.config(text=f"{msg}\n{explanation}", bg="green")
+                if self.sound_variable.get() != "":
+                    GUI_Exam.engine.say(self.for_correct_answer())
+                    GUI_Exam.engine.say(msg)
+                    GUI_Exam.engine.say(explanation)
+                    GUI_Exam.engine.runAndWait()
             else:
                 self.evaluation_feedback.config(
                     text=f"Correct!, {self.question_paper.question} is {self.question_paper.answer_actual}",
                     bg="green",
                 )
-            self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+            self.evaluation_feedback.grid(row=12, column=1, columnspan=8, pady=10)
             self.exam_score += 1
             if self.sound_variable.get() != "":
                 if self.question_paper._S not in ["factors_primes", "prime_factorization"]:
@@ -803,7 +868,7 @@ class GUI_Exam(Exam):
                     text="Your Answer is Incorrect, you've got 2 more attempts!",
                     bg="teal",
                 )
-                self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+                self.evaluation_feedback.grid(row=12, column=1, columnspan=8, pady=10)
                 self.attempts_counter += 1
                 if self.sound_variable.get() != "":
                     GUI_Exam.engine.say(self.for_incorrect_answer())
@@ -814,7 +879,7 @@ class GUI_Exam(Exam):
                     text="Your Answer is Incorrect, it's the last attempt!",
                     bg="yellow",
                 )
-                self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+                self.evaluation_feedback.grid(row=12, column=1, columnspan=8, pady=10)
                 self.attempts_counter += 1
                 if self.sound_variable.get() != "":
                     GUI_Exam.engine.say(self.for_incorrect_answer())
@@ -891,6 +956,19 @@ class GUI_Exam(Exam):
                         if self.sound_variable.get() != "":
                             GUI_Exam.engine.say(msg)
                             GUI_Exam.engine.runAndWait()
+                    elif self.question_paper._S == "lcm":
+                        nums = self.question_paper.numbers
+                        if len(nums) == 3:
+                            ntext = f"{nums[0]}, {nums[1]}, and {nums[2]}"
+                        else:
+                            ntext = f"{nums[0]} and {nums[1]}"
+                        explanation = lcm_explanation(nums, self.question_paper.method)
+                        msg = f"Incorrect. The LCM of {ntext} is {self.question_paper.answer_actual}."
+                        self.evaluation_feedback.config(text=f"{msg}\n{explanation}", bg="red")
+                        if self.sound_variable.get() != "":
+                            GUI_Exam.engine.say(msg)
+                            GUI_Exam.engine.say(explanation)
+                            GUI_Exam.engine.runAndWait()
                     else:
                         self.evaluation_feedback.config(
                             text=f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}",
@@ -901,7 +979,7 @@ class GUI_Exam(Exam):
                                 f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}"
                             )
                             GUI_Exam.engine.runAndWait()
-                self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+                self.evaluation_feedback.grid(row=12, column=1, columnspan=8, pady=10)
                 self.attempts_counter += 1
                 if self.sound_variable.get() != "":
                     GUI_Exam.engine.say(self.for_failed_attempt())
@@ -1240,6 +1318,42 @@ def prime_factorization(n: int):
     if n > 1:
         factors.append(n)
     return factors
+
+def lcm_of_numbers(numbers):
+    from math import gcd
+    lcm_val = numbers[0]
+    for n in numbers[1:]:
+        lcm_val = lcm_val * n // gcd(lcm_val, n)
+    return lcm_val
+
+def lcm_explanation(nums, method):
+    lcm_val = lcm_of_numbers(nums)
+    if method == "listing multiples":
+        parts = []
+        for n in nums:
+            multiples = [n * i for i in range(1, lcm_val // n + 1)]
+            parts.append(f"Multiples of {n}: {', '.join(map(str, multiples))}")
+        return f"{' ; '.join(parts)}. The first common multiple is {lcm_val}."
+    elif method == "prime factorization":
+        pf_texts = [f"Prime factors of {n}: {' × '.join(map(str, prime_factorization(n)))}" for n in nums]
+        return f"{' ; '.join(pf_texts)}. Multiply highest powers of each prime to get {lcm_val}."
+    else:
+        temps = nums[:]
+        prime = 2
+        steps = []
+        factors = []
+        while any(t > 1 for t in temps):
+            divided = False
+            for i in range(len(temps)):
+                if temps[i] % prime == 0:
+                    temps[i] //= prime
+                    divided = True
+            if divided:
+                factors.append(str(prime))
+                steps.append(f"divide by {prime} → {', '.join(map(str, temps))}")
+            else:
+                prime += 1
+        return f"{' ; '.join(steps)}. Multiply {', '.join(factors)} to get {lcm_val}."
 
 
 def parse_factor_input(text: str):
