@@ -21,7 +21,7 @@ Launch the exam interface with:
 python project.py
 ```
 
-Select your desired operations, choose a difficulty level (Easy, Medium or Hard) and specify the number of questions, then start the exam. After completion you can save a PDF report summarizing your results. The home screen also provides a "Prime Sieve" activity for discovering primes between 1 and 100. You can either launch it from its button or tick the **Sieve of Eratosthenes** checkbox to jump straight into the activity. A checkbox labeled **Factors & Prime Count** enables quiz questions that ask how many factors a given number has, reporting whether it is prime or composite.
+Select your desired operations, choose a difficulty level (Easy, Medium or Hard) and specify the number of questions, then start the exam. After completion you can save a PDF report summarizing your results. A checkbox labeled **Factors & Prime Count** enables quiz questions that ask how many factors a given number has, reporting whether it is prime or composite.
 
 ## Repository contents
 - `project.py` – main program containing the GUI and quiz logic.
