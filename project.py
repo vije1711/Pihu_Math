@@ -818,19 +818,20 @@ class GUI_Exam(Exam):
                         bg="green",
                     )
             elif self.question_paper._S == "factors_primes":
-                facs = factors_of(self.question_paper.answer_actual)
+                number = self.question_paper._X
+                facs = self.question_paper.factors
                 status = (
                     "a prime number"
                     if len(facs) == 2
                     else (
                         "neither prime nor composite"
-                        if self.question_paper.answer_actual == 1
+                        if number == 1
                         else "a composite number"
                     )
                 )
-                pair = twin_prime_pair(self.question_paper.answer_actual)
+                pair = self.question_paper.twin_pair
                 pair_text = f" and part of the twin prime pair {pair}" if pair else ""
-                explanation = f"Factors of {self.question_paper.answer_actual}: {', '.join(map(str, facs))}. It is {status}{pair_text}."
+                explanation = f"Factors of {number}: {', '.join(map(str, facs))}. It is {status}{pair_text}."
                 self.evaluation_feedback.config(
                     text=f"Correct! {explanation}",
                     bg="green",
@@ -905,19 +906,20 @@ class GUI_Exam(Exam):
                                 )
                                 GUI_Exam.engine.runAndWait()
                     elif self.question_paper._S == "factors_primes":
-                        facs = factors_of(self.question_paper.answer_actual)
+                        number = self.question_paper._X
+                        facs = self.question_paper.factors
                         status = (
                             "a prime number"
                             if len(facs) == 2
                             else (
                                 "neither prime nor composite"
-                                if self.question_paper.answer_actual == 1
+                                if number == 1
                                 else "a composite number"
                             )
                         )
-                        pair = twin_prime_pair(self.question_paper.answer_actual)
+                        pair = self.question_paper.twin_pair
                         pair_text = f" and part of the twin prime pair {pair}" if pair else ""
-                        explanation = f"Factors of {self.question_paper.answer_actual}: {', '.join(map(str, facs))}. It is {status}{pair_text}."
+                        explanation = f"The number {number} has {len(facs)} factors: {', '.join(map(str, facs))}. It is {status}{pair_text}."
                         self.evaluation_feedback.config(
                             text=f"Incorrect! {explanation}",
                             bg="red",
