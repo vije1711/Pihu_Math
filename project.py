@@ -6,20 +6,49 @@ import os
 import sys
 import pyttsx3
 from tkinter import *
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 from datetime import datetime
 from fpdf import FPDF
 
 
-# Determine the directory where the script or executable is running
+# Determine the directory where the script or executable is running and
+# where user-selected paths should be stored
 if getattr(sys, 'frozen', False):
-    base_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+    resource_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+    script_dir = os.path.dirname(sys.executable)
 else:
-    base_path = os.path.dirname(os.path.abspath(__file__))
+    resource_dir = os.path.dirname(os.path.abspath(__file__))
+    script_dir = resource_dir
+
+SAVE_FILE = os.path.join(script_dir, ".save_path.txt")
+
+
+def get_output_dir():
+    """Return a writable directory for output files."""
+    path = None
+    if os.path.exists(SAVE_FILE):
+        with open(SAVE_FILE, "r") as fh:
+            p = fh.read().strip()
+        if p and os.path.isdir(p) and os.access(p, os.W_OK):
+            path = p
+    if not path:
+        root = Tk()
+        root.withdraw()
+        chosen = ""
+        while not chosen or not os.path.isdir(chosen):
+            chosen = filedialog.askdirectory(title="Select folder to save files")
+            if not chosen:
+                continue
+        root.destroy()
+        os.makedirs(chosen, exist_ok=True)
+        with open(SAVE_FILE, "w") as fh:
+            fh.write(chosen)
+        path = chosen
+    return path
+
 
 # Folder where all generated files will be saved
-OUTPUT_DIR = os.path.join(base_path, "0 Worksheets")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+OUTPUT_DIR = get_output_dir()
 
 
 class Exam:
@@ -340,7 +369,7 @@ class GUI_Exam(Exam):
         cls.root.title("MathQuest Adventures")
         cls.root.state('zoomed')
         cls.root.geometry("1530x775")
-        cls.root.iconbitmap("Icon.ico")
+        cls.root.iconbitmap(os.path.join(resource_dir, "Icon.ico"))
         cls.root.configure(bg="#F0F8FF")
         return cls()
             
@@ -1463,7 +1492,7 @@ class GUI_Exam(Exam):
 class PDF(FPDF, GUI_Exam):
     def header(self):
         # Rendering logo:
-        self.image("logo_image.jpg", 10, 8, 15)
+        self.image(os.path.join(resource_dir, "logo_image.jpg"), 10, 8, 15)
         # Setting font: helvetica bold 15
         self.set_font("helvetica", "B", 15)
         # Calculating width of title and setting cursor position:
