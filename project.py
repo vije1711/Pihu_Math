@@ -3,6 +3,7 @@ import random
 import re
 from collections import Counter
 import os
+import sys
 import pyttsx3
 from tkinter import *
 from tkinter import messagebox
@@ -10,7 +11,14 @@ from datetime import datetime
 from fpdf import FPDF
 
 
-OUTPUT_DIR = r"C:\Users\vijen\OneDrive\Wisdom\Sikhi\6 Machine Learning\2 CS50's Introduction to Programming with Python\0.8 Codex OpenAI\0 Worksheets"
+# Determine the directory where the script or executable is running
+if getattr(sys, 'frozen', False):
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+else:
+    base_path = os.path.dirname(os.path.abspath(__file__))
+
+# Folder where all generated files will be saved
+OUTPUT_DIR = os.path.join(base_path, "0 Worksheets")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
