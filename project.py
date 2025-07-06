@@ -567,35 +567,71 @@ class GUI_Exam(Exam):
             font=("Times", 20),
             bg="red",
         )
-        self.exam_frame = Frame(GUI_Exam.root)
+        self.exam_frame = Frame(GUI_Exam.root, bg=self.bg_color)
+        self.icon_label = Label(
+            self.exam_frame,
+            text="🧮",
+            font=("Comic Sans MS", 50),
+            bg=self.bg_color,
+        )
+        self.question_box = LabelFrame(
+            self.exam_frame,
+            bg=self.bg_color,
+            bd=4,
+            relief="groove",
+        )
         self.status_checkbox, self.question_to_ask = None, None
         self.difficulty_chosen = None
         self.question_label = Label(
-            self.exam_frame,
+            self.question_box,
             text=self.display_question.get(),
-            font=("Bell MT", 35),
-            justify="left",
+            font=("Comic Sans MS", 32, "bold"),
+            bg=self.bg_color,
+            justify="center",
             wraplength=1000,
         )
-        self.label_user_answer = Label(self.exam_frame, text="Type Answer Here:", font=("Bell MT", 20), justify="center")
-        self.input_user_answer = Entry(self.exam_frame, font=("Bell MT", 20), justify="center", width=7)
+        self.label_user_answer = Label(
+            self.exam_frame,
+            text="Type Answer Here:",
+            font=("Comic Sans MS", 24),
+            bg=self.bg_color,
+            justify="center",
+        )
+        self.input_user_answer = Entry(
+            self.exam_frame,
+            font=("Comic Sans MS", 24),
+            justify="center",
+            width=7,
+        )
         self.label_user_answer_remainder = Label(
             self.exam_frame,
             text="Type Remainder Here:",
-            font=("Bell MT", 20),
+            font=("Comic Sans MS", 24),
+            bg=self.bg_color,
             justify="center",
         )
-        self.input_user_answer_remainder = Entry(self.exam_frame, font=("Bell MT", 20), justify="center", width=7)
+        self.input_user_answer_remainder = Entry(
+            self.exam_frame,
+            font=("Comic Sans MS", 24),
+            justify="center",
+            width=7,
+        )
         self.choice_var = IntVar()
         self.options_frame = None
         self.question_asked, self.exam_score = 0, 0          # To keep track of the number of questions & correct answers.
         self.start_time, self.test_start, self.question_paper = None, None, None
         self.attempts_counter = 0
-        self.check_button = Button(self.exam_frame, text="Submit", font=("Bell MT", 16),command=self.check_user_answer)
+        self.check_button = Button(
+            self.exam_frame,
+            text="Submit",
+            font=("Comic Sans MS", 20),
+            command=self.check_user_answer,
+        )
         self.evaluation_feedback = Label(
             self.exam_frame,
-            font=("Bell MT", 20),
-            justify="left",
+            font=("Comic Sans MS", 24),
+            bg=self.bg_color,
+            justify="center",
             wraplength=900,
         )
         self.evaluation_result, self.end_time, self.test_end = None, None, None
@@ -603,7 +639,17 @@ class GUI_Exam(Exam):
         self.grade_label = Label(self.result_frame, font=("Bell MT", 50), justify="center", width=38)
         self.stat_frame = Frame(self.result_frame, width=350, height=475, bd=5, relief="groove")
         self.quit_button = Button(self.result_frame, text="Quit!", font=("Bell MT", 16), command=self.root.quit)
-        self.sound_checkbox = Checkbutton(self.exam_frame, text="Disable Sound!", variable=self.sound_variable, onvalue="", offvalue="Enable", font=("Bell MT", 20), bd=5, relief='groove')
+        self.sound_checkbox = Checkbutton(
+            self.exam_frame,
+            text="Disable Sound!",
+            variable=self.sound_variable,
+            onvalue="",
+            offvalue="Enable",
+            font=("Comic Sans MS", 20),
+            bd=5,
+            relief="groove",
+            bg=self.bg_color,
+        )
         self.file_name = f"Practice_dated_{datetime.now().strftime('%d-%b-%y-%I%M')}"
         self.file_open_mode = None
         self.pdf = None
@@ -793,19 +839,16 @@ class GUI_Exam(Exam):
         self.home_canvas.unbind_all("<Button-4>")
         self.home_canvas.unbind_all("<Button-5>")
         self.exam_frame.pack(fill="both", expand=1)
-        self.sound_checkbox.grid(row=0, column=7)
+        self.sound_checkbox.grid(row=0, column=7, pady=10, sticky="e")
         self.sound_checkbox.deselect()
-        Label(self.exam_frame, width=38, height=5).grid(row=1, column=0, columnspan=5)
-        self.question_label.grid(row=2, column=1, rowspan=2, columnspan=5, sticky=W)
-        Label(self.exam_frame, width=38, height=5).grid(row=5, column=0, columnspan=5)
-        self.label_user_answer.grid(row=6, column=1, rowspan=2, columnspan=1, sticky="E")
-        Label(self.exam_frame, width=38, height=5).grid(row=5, column=0, columnspan=5)
-        self.input_user_answer.grid(row=6, column=2, rowspan=2, columnspan=1, sticky="W")
+        self.icon_label.grid(row=1, column=0, columnspan=8, pady=(10, 5))
+        self.question_box.grid(row=2, column=1, columnspan=6, pady=10, padx=10)
+        self.question_label.pack(padx=20, pady=20)
+        self.label_user_answer.grid(row=6, column=1, sticky="E", pady=10)
+        self.input_user_answer.grid(row=6, column=2, sticky="W", pady=10, padx=5)
         self.start_time = datetime.now()
         self.test_start = self.start_time.strftime("%I:%M%p")
-        Label(self.exam_frame, width=38, height=5).grid(row=9, column=0, columnspan=5)
-        self.check_button.grid(row=10, column=1)
-        Label(self.exam_frame, width=15, height=5).grid(row=11, column=0, columnspan=5)
+        self.check_button.grid(row=10, column=1, columnspan=2, pady=10)
         self.generate_question()
         
     def generate_question(self):
@@ -878,7 +921,11 @@ class GUI_Exam(Exam):
                         canvas.create_rectangle(x0, 0, x1, canvas_height, fill=color, outline="black")
                     canvas.pack()
                     Radiobutton(
-                        frame, variable=self.choice_var, value=i, font=("Bell MT", 16)
+                        frame,
+                        variable=self.choice_var,
+                        value=i,
+                        font=("Comic Sans MS", 18),
+                        bg=self.bg_color,
                     ).pack(pady=5)
                     frame.grid(row=0, column=i, padx=5)
             else:
