@@ -328,6 +328,7 @@ class GUI_Exam(Exam):
         cls.root.state('zoomed')
         cls.root.geometry("1530x775")
         cls.root.iconbitmap("Icon.ico")
+        cls.root.configure(bg="#F0F8FF")
         return cls()
             
     def __init__(self):
@@ -337,9 +338,54 @@ class GUI_Exam(Exam):
         Parameters:
             - master: Parent Tkinter window (default is None)
         """
-        self.home_frame = Frame(GUI_Exam.root)
-        self.home_label = Label(self.home_frame, text="Welcome to the MathQuest Adventures", font=("Bell MT", 50), justify="center", width=38)
-        self.aritmatic_label = Label(self.home_frame, text="Please select Arithmatics:", font=("Bell MT", 20), justify="left")
+        self.bg_color = "#F0F8FF"
+        self.home_frame = Frame(GUI_Exam.root, bg=self.bg_color)
+        # canvas for vertical scrolling support
+        self.canvas = Canvas(
+            self.home_frame,
+            bg=self.bg_color,
+            highlightthickness=0,
+        )
+        self.scrollbar = Scrollbar(
+            self.home_frame,
+            orient=VERTICAL,
+            command=self.canvas.yview,
+        )
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # frame inside the canvas that will hold all widgets
+        self.scrollable_frame = Frame(self.canvas, bg=self.bg_color)
+        self.canvas_frame = self.canvas.create_window(
+            (0, 0),
+            window=self.scrollable_frame,
+            anchor="nw",
+        )
+        self.canvas.bind(
+            "<Configure>",
+            lambda e: self.canvas.itemconfig(self.canvas_frame, width=e.width),
+        )
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")),
+        )
+
+        # container for centering content
+        self.container = Frame(self.scrollable_frame, bg=self.bg_color)
+        self.banner_label = Label(self.container, text="🧮", font=("Comic Sans MS", 60), bg=self.bg_color)
+        self.home_label = Label(
+            self.container,
+            text="Welcome to the MathQuest Adventures",
+            font=("Comic Sans MS", 40, "bold"),
+            justify="center",
+            bg=self.bg_color,
+        )
+        self.aritmatic_label = Label(
+            self.container,
+            text="Please select Arithmatics:",
+            font=("Comic Sans MS", 24),
+            justify="left",
+            bg=self.bg_color,
+        )
         self.add_variable = StringVar()
         self.subtract_variable = StringVar()
         self.multiply_variable = StringVar()
@@ -354,54 +400,178 @@ class GUI_Exam(Exam):
         self.grade = StringVar()
         self.sound_variable = StringVar()
         self.difficulty_variable = StringVar(value="Easy")
-        self.difficulty_label = Label(self.home_frame, text="Select Difficulty:", font=("Bell MT", 20), justify="left")
-        self.difficulty_menu = OptionMenu(self.home_frame, self.difficulty_variable, "Easy", "Medium", "Hard")
-        self.add_checkbox = Checkbutton(self.home_frame, text="Addition", variable=self.add_variable, onvalue="+", offvalue=None, font=("Bell MT", 18))
-        self.subtract_checkbox = Checkbutton(self.home_frame, text="Subraction", variable=self.subtract_variable, onvalue="-", offvalue=None, font=("Bell MT", 18))
-        self.multiply_checkbox = Checkbutton(self.home_frame, text="Multiplication", variable=self.multiply_variable, onvalue="*", offvalue=None, font=("Bell MT", 18))
-        self.divide_checkbox = Checkbutton(self.home_frame, text="Division", variable=self.divide_variable, onvalue="/", offvalue=None, font=("Bell MT", 18))
-        self.fraction_checkbox = Checkbutton(self.home_frame, text="Fractions", variable=self.fraction_variable, onvalue="fraction", offvalue=None, font=("Bell MT", 18))
+        self.difficulty_label = Label(
+            self.container,
+            text="Select Difficulty:",
+            font=("Comic Sans MS", 20),
+            justify="left",
+            bg=self.bg_color,
+        )
+        self.difficulty_menu = OptionMenu(
+            self.container,
+            self.difficulty_variable,
+            "Easy",
+            "Medium",
+            "Hard",
+        )
+        self.difficulty_menu.config(font=("Comic Sans MS", 16))
+
+        self.basic_ops_frame = LabelFrame(
+            self.container,
+            text="Arithmetic",
+            font=("Comic Sans MS", 18),
+            bg=self.bg_color,
+            padx=10,
+            pady=10,
+        )
+        self.adv_ops_frame = LabelFrame(
+            self.container,
+            text="More Options",
+            font=("Comic Sans MS", 18),
+            bg=self.bg_color,
+            padx=10,
+            pady=10,
+        )
+
+        cbfont = ("Comic Sans MS", 18)
+        self.add_checkbox = Checkbutton(
+            self.basic_ops_frame,
+            text="Addition",
+            variable=self.add_variable,
+            onvalue="+",
+            offvalue=None,
+            font=cbfont,
+            anchor="w",
+            width=15,
+            bg=self.bg_color,
+        )
+        self.subtract_checkbox = Checkbutton(
+            self.basic_ops_frame,
+            text="Subraction",
+            variable=self.subtract_variable,
+            onvalue="-",
+            offvalue=None,
+            font=cbfont,
+            anchor="w",
+            width=15,
+            bg=self.bg_color,
+        )
+        self.multiply_checkbox = Checkbutton(
+            self.basic_ops_frame,
+            text="Multiplication",
+            variable=self.multiply_variable,
+            onvalue="*",
+            offvalue=None,
+            font=cbfont,
+            anchor="w",
+            width=15,
+            bg=self.bg_color,
+        )
+        self.divide_checkbox = Checkbutton(
+            self.basic_ops_frame,
+            text="Division",
+            variable=self.divide_variable,
+            onvalue="/",
+            offvalue=None,
+            font=cbfont,
+            anchor="w",
+            width=15,
+            bg=self.bg_color,
+        )
+        self.fraction_checkbox = Checkbutton(
+            self.adv_ops_frame,
+            text="Fractions",
+            variable=self.fraction_variable,
+            onvalue="fraction",
+            offvalue=None,
+            font=cbfont,
+            anchor="w",
+            width=18,
+            bg=self.bg_color,
+        )
         self.factors_primes_checkbox = Checkbutton(
-            self.home_frame,
+            self.adv_ops_frame,
             text="Factors & Primes",
             variable=self.factors_primes_variable,
             onvalue="factors_primes",
             offvalue=None,
-            font=("Bell MT", 18),
+            font=cbfont,
+            anchor="w",
+            width=18,
+            bg=self.bg_color,
         )
         self.prime_factor_checkbox = Checkbutton(
-            self.home_frame,
+            self.adv_ops_frame,
             text="Prime Factorization",
             variable=self.prime_factor_variable,
             onvalue="prime_factorization",
             offvalue=None,
-            font=("Bell MT", 18),
+            font=cbfont,
+            anchor="w",
+            width=18,
+            bg=self.bg_color,
         )
         self.hcf_checkbox = Checkbutton(
-            self.home_frame,
+            self.adv_ops_frame,
             text="HCF",
             variable=self.hcf_variable,
             onvalue="hcf",
             offvalue=None,
-            font=("Bell MT", 18),
+            font=cbfont,
+            anchor="w",
+            width=18,
+            bg=self.bg_color,
         )
         self.lcm_checkbox = Checkbutton(
-            self.home_frame,
+            self.adv_ops_frame,
             text="LCM",
             variable=self.lcm_variable,
             onvalue="lcm",
             offvalue=None,
-            font=("Bell MT", 18),
+            font=cbfont,
+            anchor="w",
+            width=18,
+            bg=self.bg_color,
         )
-        self.select_all_checkbox = Checkbutton(self.home_frame, text="All of the above!", variable=self.select_all_variable, onvalue="select_all", offvalue=None, font=("Bell MT", 18))
+        self.select_all_checkbox = Checkbutton(
+            self.container,
+            text="All of the above!",
+            variable=self.select_all_variable,
+            onvalue="select_all",
+            offvalue=None,
+            font=("Comic Sans MS", 18),
+            bg=self.bg_color,
+            anchor="w",
+        )
         self.add_checkbox.deselect(), self.subtract_checkbox.deselect(), self.multiply_checkbox.deselect()
         self.divide_checkbox.deselect(), self.fraction_checkbox.deselect(), self.factors_primes_checkbox.deselect(), self.prime_factor_checkbox.deselect(), self.hcf_checkbox.deselect(), self.lcm_checkbox.deselect(), self.select_all_checkbox.deselect()
-        self.label_num_question = Label(self.home_frame, text="Type number of Questions:", font=("Bell MT", 20), justify="left")
-        self.input_num_question = Entry(self.home_frame, font=("Bell MT", 20), justify="center", width=3)
-        self.start_exam_button = Button(self.home_frame, text="Start Exam!", font=("Bell MT", 14), command=self.start)
-        self.factor_mode_button = Button(self.home_frame, text="Factors & Primes", font=("Bell MT", 14), command=self.launch_factor_mode)
+        self.label_num_question = Label(
+            self.container,
+            text="Type number of Questions:",
+            font=("Comic Sans MS", 20),
+            justify="left",
+            bg=self.bg_color,
+        )
+        self.input_num_question = Entry(
+            self.container,
+            font=("Comic Sans MS", 20),
+            justify="center",
+            width=4,
+        )
+        self.start_exam_button = Button(
+            self.container,
+            text="Start Exam!",
+            font=("Comic Sans MS", 16),
+            command=self.start,
+        )
+        self.factor_mode_button = Button(
+            self.container,
+            text="Factors & Primes",
+            font=("Comic Sans MS", 16),
+            command=self.launch_factor_mode,
+        )
         self.test_checkbox = Label(
-            self.home_frame,
+            self.container,
             text="Please ensure correct selections & entry!",
             font=("Times", 20),
             bg="red",
@@ -450,28 +620,56 @@ class GUI_Exam(Exam):
                 
     def launch_home_frame(self):
         self.home_frame.pack(fill="both", expand=1)
-        Label(self.home_frame, width=38, height=3).grid(row=1, column=0, columnspan=5)
-        self.home_label.grid(row=2, column=0, rowspan=2, columnspan=5)
-        Label(self.home_frame, width=38, height=5).grid(row=6, column=0, columnspan=5)
-        self.aritmatic_label.grid(row=7, column=0, rowspan=1, columnspan=2)
-        self.add_checkbox.grid(row=7, column=2)
-        self.subtract_checkbox.grid(row=7, column=3)
-        self.multiply_checkbox.grid(row=7, column=4)
-        self.divide_checkbox.grid(row=8, column=2)
-        self.fraction_checkbox.grid(row=8, column=3)
-        self.factors_primes_checkbox.grid(row=8, column=4)
-        self.prime_factor_checkbox.grid(row=9, column=2)
-        self.hcf_checkbox.grid(row=9, column=3)
-        self.lcm_checkbox.grid(row=9, column=4)
-        self.select_all_checkbox.grid(row=10, column=0, columnspan=5)
-        self.difficulty_label.grid(row=11, column=0, columnspan=2)
-        self.difficulty_menu.grid(row=11, column=2)
-        Label(self.home_frame, width=38, height=5).grid(row=12, column=0, columnspan=5)
-        self.label_num_question.grid(row=13, column=0, columnspan=2)
-        self.input_num_question.grid(row=13, column=2)
-        Label(self.home_frame, width=38, height=5).grid(row=14, column=0, columnspan=5)
-        self.start_exam_button.grid(row=15, column=0, columnspan=5)
-        self.factor_mode_button.grid(row=16, column=0, columnspan=5, pady=(10,0))
+        # display canvas and scrollbar
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+        self.container.pack(expand=True)
+        self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+        self.canvas.yview_moveto(0)
+
+        # banner and title
+        self.banner_label.grid(row=0, column=0, columnspan=2, pady=(20, 10))
+        self.home_label.grid(row=1, column=0, columnspan=2, pady=(0, 20))
+
+        self.aritmatic_label.grid(row=2, column=0, columnspan=2, pady=(0, 10), sticky="w")
+
+        # operation frames
+        self.basic_ops_frame.grid(row=3, column=0, padx=10, sticky="n")
+        self.adv_ops_frame.grid(row=3, column=1, padx=10, sticky="n")
+
+        # pack checkboxes inside frames
+        for widget in (
+            self.add_checkbox,
+            self.subtract_checkbox,
+            self.multiply_checkbox,
+            self.divide_checkbox,
+        ):
+            widget.pack(anchor="w")
+
+        for widget in (
+            self.fraction_checkbox,
+            self.factors_primes_checkbox,
+            self.prime_factor_checkbox,
+            self.hcf_checkbox,
+            self.lcm_checkbox,
+        ):
+            widget.pack(anchor="w")
+
+        self.select_all_checkbox.grid(row=4, column=0, columnspan=2, pady=(10, 10), sticky="w")
+        self.difficulty_label.grid(row=5, column=0, sticky="e", pady=(0, 10))
+        self.difficulty_menu.grid(row=5, column=1, sticky="w", pady=(0, 10))
+        self.label_num_question.grid(row=6, column=0, sticky="e")
+        self.input_num_question.grid(row=6, column=1, sticky="w")
+        self.start_exam_button.grid(row=7, column=0, columnspan=2, pady=(20, 5))
+        self.factor_mode_button.grid(row=8, column=0, columnspan=2, pady=(5, 10))
+
+    def _on_mousewheel(self, event):
+        """Scroll the canvas vertically when the mouse wheel is used."""
+        if event.delta:
+            self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        else:
+            direction = 1 if event.num == 5 else -1
+            self.canvas.yview_scroll(direction, "units")
 
     def checkbox_status(self):
         if self.select_all_variable.get() == "select_all" and not self.input_num_question.get() == "" and str(self.input_num_question.get()).isdecimal() and int(self.input_num_question.get()) > 0:
@@ -514,7 +712,7 @@ class GUI_Exam(Exam):
         """Start the exam based on user selections."""
         self.test_checkbox.grid_forget()
         if self.checkbox_status() == "Please Select atleast One option!" or self.input_num_question.get() == "" or not str(self.input_num_question.get()).isdecimal() or int(self.input_num_question.get()) <= 0:
-            self.test_checkbox.grid(row=17, column=0, columnspan=5, pady=(5, 0))
+            self.test_checkbox.grid(row=9, column=0, columnspan=2, pady=(5, 0))
         else:
             self.launch_exam_frame()
 
