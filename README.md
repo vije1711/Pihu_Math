@@ -21,7 +21,7 @@ Launch the exam interface with:
 python project.py
 ```
 
-Select your desired operations, choose a difficulty level (Easy, Medium or Hard) and specify the number of questions, then start the exam. After completion you can save a PDF report summarizing your results.
+Select your desired operations, choose a difficulty level (Easy, Medium or Hard) and specify the number of questions, then start the exam. After completion you can save a PDF report summarizing your results. The home screen also provides a "Prime Sieve" activity for discovering primes between 1 and 100.
 
 ## Repository contents
 - `project.py` – main program containing the GUI and quiz logic.

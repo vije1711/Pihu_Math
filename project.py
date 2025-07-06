@@ -267,6 +267,7 @@ class GUI_Exam(Exam):
         self.input_num_question = Entry(self.home_frame, font=("Bell MT", 20), justify="center", width=3)
         self.start_exam_button = Button(self.home_frame, text="Start Exam!", font=("Bell MT", 14), command=self.start)
         self.factor_mode_button = Button(self.home_frame, text="Factors & Primes", font=("Bell MT", 14), command=self.launch_factor_mode)
+        self.sieve_mode_button = Button(self.home_frame, text="Prime Sieve", font=("Bell MT", 14), command=self.launch_sieve_mode)
         self.test_checkbox = Label(
             self.home_frame,
             text="Please ensure correct selections & entry!",
@@ -330,6 +331,7 @@ class GUI_Exam(Exam):
         Label(self.home_frame, width=38, height=5).grid(row=12, column=0, columnspan=5)
         self.start_exam_button.grid(row=13, column=0, columnspan=5)
         self.factor_mode_button.grid(row=14, column=0, columnspan=5, pady=(10,0))
+        self.sieve_mode_button.grid(row=15, column=0, columnspan=5, pady=(10,0))
         
     def checkbox_status(self):
         if self.select_all_variable.get() == "select_all" and not self.input_num_question.get() == "" and str(self.input_num_question.get()).isdecimal() and int(self.input_num_question.get()) > 0:
@@ -404,6 +406,116 @@ class GUI_Exam(Exam):
 
     def back_from_factor(self):
         self.factor_frame.pack_forget()
+        self.launch_home_frame()
+
+    def launch_sieve_mode(self):
+        self.home_frame.pack_forget()
+        self.sieve_frame = Frame(GUI_Exam.root)
+        self.sieve_frame.pack(fill="both", expand=1)
+        self.primes = primes_up_to(100)
+        self.total_primes = len(self.primes)
+        self.prime_count = 0
+        Label(
+            self.sieve_frame,
+            text="Sieve of Eratosthenes - Click numbers to find primes!",
+            font=("Bell MT", 30),
+        ).grid(row=0, column=0, columnspan=10, pady=10)
+        self.prime_buttons = {}
+        self.sieve_state = {}
+        for num in range(1, 101):
+            btn = Button(
+                self.sieve_frame,
+                text=str(num),
+                width=4,
+                height=2,
+                font=("Bell MT", 16),
+                command=lambda n=num: self.sieve_number_click(n),
+            )
+            row = (num - 1) // 10 + 1
+            col = (num - 1) % 10
+            btn.grid(row=row, column=col, padx=2, pady=2)
+            self.prime_buttons[num] = btn
+            self.sieve_state[num] = "unmarked"
+
+        self.prime_counter_label = Label(
+            self.sieve_frame,
+            text=f"Primes Found: 0/{self.total_primes}",
+            font=("Bell MT", 16),
+        )
+        self.prime_counter_label.grid(row=11, column=0, columnspan=10, pady=(10, 0))
+        self.check_sieve_button = Button(
+            self.sieve_frame,
+            text="Check My Work",
+            font=("Bell MT", 14),
+            command=self.check_sieve_work,
+        )
+        self.check_sieve_button.grid(row=12, column=0, columnspan=10, pady=5)
+        self.sieve_back_button = Button(
+            self.sieve_frame,
+            text="Back to Home",
+            font=("Bell MT", 14),
+            command=self.back_from_sieve,
+        )
+        self.sieve_back_button.grid(row=13, column=0, columnspan=10, pady=10)
+
+    def sieve_number_click(self, n):
+        if self.sieve_state.get(n) != "unmarked":
+            return
+        btn = self.prime_buttons[n]
+        btn.config(bg="yellow")
+        GUI_Exam.root.update_idletasks()
+        if n == 1:
+            messagebox.showinfo("Prime Check", "1 is not a prime number.")
+            self.mark_crossed(n)
+            return
+        if is_prime(n):
+            self.mark_prime(n)
+            for m in range(n * 2, 101, n):
+                if self.sieve_state.get(m) == "unmarked":
+                    self.mark_crossed(m)
+        else:
+            self.mark_crossed(n)
+
+    def mark_prime(self, n):
+        btn = self.prime_buttons[n]
+        btn.config(bg="green", fg="white")
+        btn.config(state=DISABLED)
+        self.sieve_state[n] = "prime"
+        self.prime_count += 1
+        self.update_prime_counter()
+
+    def mark_crossed(self, n):
+        btn = self.prime_buttons[n]
+        btn.config(bg="lightgrey", font=("Bell MT", 16, "overstrike"))
+        btn.config(state=DISABLED)
+        self.sieve_state[n] = "crossed"
+
+    def update_prime_counter(self):
+        self.prime_counter_label.config(
+            text=f"Primes Found: {self.prime_count}/{self.total_primes}"
+        )
+
+    def check_sieve_work(self):
+        missed = [p for p in self.primes if self.sieve_state.get(p) != "prime"]
+        wrong = [
+            n
+            for n in range(2, 101)
+            if n not in self.primes and self.sieve_state.get(n) == "prime"
+        ]
+        for m in missed:
+            self.prime_buttons[m].config(bg="orange")
+        for w in wrong:
+            self.prime_buttons[w].config(bg="red")
+        if not missed and not wrong:
+            messagebox.showinfo("Check My Work", "Great job! You found all the primes!")
+        else:
+            messagebox.showinfo(
+                "Check My Work",
+                f"Missed {len(missed)} primes and {len(wrong)} incorrect selections.",
+            )
+
+    def back_from_sieve(self):
+        self.sieve_frame.pack_forget()
         self.launch_home_frame()
             
     def launch_exam_frame(self):
@@ -986,6 +1098,15 @@ def twin_prime_pair(n: int):
     if n + 2 <= 100 and is_prime(n + 2):
         return (n, n + 2)
     return None
+
+def primes_up_to(limit: int):
+    sieve = [True] * (limit + 1)
+    sieve[0:2] = [False, False]
+    for p in range(2, int(limit ** 0.5) + 1):
+        if sieve[p]:
+            for multiple in range(p * p, limit + 1, p):
+                sieve[multiple] = False
+    return [n for n, prime in enumerate(sieve) if prime]
 
 def tell_grade(grade):
     """Provide a random congratulatory message based on the grade."""
