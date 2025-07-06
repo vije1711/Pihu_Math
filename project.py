@@ -668,6 +668,12 @@ class GUI_Exam(Exam):
                 else:
                     messagebox.showerror("Input Error", "Please type Numbers only!")
                     return
+        elif self.question_paper._S == "factors_primes":
+            if self.input_user_answer.get().isdecimal():
+                self.question_paper.answer_user = int(self.input_user_answer.get())
+            else:
+                messagebox.showerror("Input Error", "Please type Numbers only!")
+                return
         else:
             if self.input_user_answer.get().isdecimal():
                 self.question_paper.answer_user = int(self.input_user_answer.get())
@@ -675,13 +681,18 @@ class GUI_Exam(Exam):
                 messagebox.showerror("Input Error", "Please type Numbers only!")
                 return
 
-        self.evaluation_result = evaluate(
-            self.question_paper.answer_user,
-            self.question_paper.answer_actual,
-            self.question_paper.answer_user_remainder,
-            self.question_paper.answer_actual_remainder if self.question_paper._S == "/" else None,
-            self.question_paper._S,
-        )
+        if self.question_paper._S == "factors_primes":
+            self.evaluation_result = (
+                self.question_paper.answer_user == self.question_paper.answer_actual
+            )
+        else:
+            self.evaluation_result = evaluate(
+                self.question_paper.answer_user,
+                self.question_paper.answer_actual,
+                self.question_paper.answer_user_remainder,
+                self.question_paper.answer_actual_remainder if self.question_paper._S == "/" else None,
+                self.question_paper._S,
+            )
         if self.evaluation_result == True:
             if self.question_paper._S == "/":
                 self.evaluation_feedback.config(
@@ -699,6 +710,28 @@ class GUI_Exam(Exam):
                         text=f"Correct!, {self.question_paper.question} is {self.question_paper.answer_actual}",
                         bg="green",
                     )
+            elif self.question_paper._S == "factors_primes":
+                facs = factors_of(self.question_paper.answer_actual)
+                status = (
+                    "a prime number"
+                    if len(facs) == 2
+                    else (
+                        "neither prime nor composite"
+                        if self.question_paper.answer_actual == 1
+                        else "a composite number"
+                    )
+                )
+                pair = twin_prime_pair(self.question_paper.answer_actual)
+                pair_text = f" and part of the twin prime pair {pair}" if pair else ""
+                explanation = f"Factors of {self.question_paper.answer_actual}: {', '.join(map(str, facs))}. It is {status}{pair_text}."
+                self.evaluation_feedback.config(
+                    text=f"Correct! {explanation}",
+                    bg="green",
+                )
+                if self.sound_variable.get() != "":
+                    GUI_Exam.engine.say(self.for_correct_answer())
+                    GUI_Exam.engine.say(explanation)
+                    GUI_Exam.engine.runAndWait()
             else:
                 self.evaluation_feedback.config(
                     text=f"Correct!, {self.question_paper.question} is {self.question_paper.answer_actual}",
@@ -707,8 +740,9 @@ class GUI_Exam(Exam):
             self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
             self.exam_score += 1
             if self.sound_variable.get() != "":
-                GUI_Exam.engine.say(self.for_correct_answer())
-                GUI_Exam.engine.runAndWait()
+                if self.question_paper._S != "factors_primes":
+                    GUI_Exam.engine.say(self.for_correct_answer())
+                    GUI_Exam.engine.runAndWait()
         else:
             if self.attempts_counter == 0:
                 self.evaluation_feedback.config(
@@ -763,6 +797,27 @@ class GUI_Exam(Exam):
                                     f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}"
                                 )
                                 GUI_Exam.engine.runAndWait()
+                    elif self.question_paper._S == "factors_primes":
+                        facs = factors_of(self.question_paper.answer_actual)
+                        status = (
+                            "a prime number"
+                            if len(facs) == 2
+                            else (
+                                "neither prime nor composite"
+                                if self.question_paper.answer_actual == 1
+                                else "a composite number"
+                            )
+                        )
+                        pair = twin_prime_pair(self.question_paper.answer_actual)
+                        pair_text = f" and part of the twin prime pair {pair}" if pair else ""
+                        explanation = f"Factors of {self.question_paper.answer_actual}: {', '.join(map(str, facs))}. It is {status}{pair_text}."
+                        self.evaluation_feedback.config(
+                            text=f"Incorrect! {explanation}",
+                            bg="red",
+                        )
+                        if self.sound_variable.get() != "":
+                            GUI_Exam.engine.say(f"Incorrect! {explanation}")
+                            GUI_Exam.engine.runAndWait()
                     else:
                         self.evaluation_feedback.config(
                             text=f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}",
