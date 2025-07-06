@@ -429,7 +429,8 @@ class GUI_Exam(Exam):
                 self.options_frame.grid(row=6, column=1, columnspan=6)
                 for i, frac in enumerate(self.question_paper.choices):
                     frame = Frame(self.options_frame)
-                    canvas_width, canvas_height = 80, 50
+                    # Increase the option size for better visibility
+                    canvas_width, canvas_height = 120, 80
                     canvas = Canvas(frame, width=canvas_width, height=canvas_height)
                     for j in range(frac[1]):
                         x0 = j * (canvas_width / frac[1])
@@ -437,7 +438,9 @@ class GUI_Exam(Exam):
                         color = "blue" if j < frac[0] else "white"
                         canvas.create_rectangle(x0, 0, x1, canvas_height, fill=color, outline="black")
                     canvas.pack()
-                    Radiobutton(frame, variable=self.choice_var, value=i).pack()
+                    Radiobutton(
+                        frame, variable=self.choice_var, value=i, font=("Bell MT", 16)
+                    ).pack(pady=5)
                     frame.grid(row=0, column=i, padx=5)
             else:
                 self.label_user_answer.config(text="Type Answer Here:")
