@@ -86,6 +86,11 @@ class Exam:
                             break
                     choices = None
                 break
+            elif S == "factors_primes":
+                X = random.randint(2, 100)
+                quiz = f"How many factors does {X} have?"
+                Z = factors_of(X)
+                break
         return cls(quiz, X, Y, Z, S, choices)
 
      # Initialize Exam object
@@ -97,7 +102,7 @@ class Exam:
             question (str): The math question.
             X (int): Operand X.
             Y (int): Operand Y.
-            Z (int): Operand Z.
+            Z (int | list): Operand Z or a list of factors for 'factors_primes'.
             S (str): The type of operation.
         """
         self.question = question
@@ -116,6 +121,11 @@ class Exam:
             self.answer_actual_remainder = self._X % self._Y
         elif self._S == "fraction":
             self.answer_actual = self._Z
+        elif self._S == "factors_primes":
+            self.factors = self._Z
+            self.is_prime = len(self._Z) == 2
+            self.twin_pair = twin_prime_pair(self._X)
+            self.answer_actual = len(self._Z)
         self.answer_user = 0
         self.answer_user_remainder = 0
 
