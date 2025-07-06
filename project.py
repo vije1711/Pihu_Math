@@ -21,7 +21,8 @@ class Exam:
         _S (str): The type of operation.
         answer_actual (int): The actual answer.
         answer_actual_remainder (int): The remainder for division problems.
-        answer_user (int): The user's answer.
+        answer_user (int | list[int]): The user's answer. May be a list for
+            prime factorization questions.
         answer_user_remainder (int): The user's remainder for division problems.
         _score (int): The user's score.
     """
@@ -178,8 +179,11 @@ class Exam:
     
     @answer_user.setter
     def answer_user(self, answer_user):
-        if answer_user >=0:
-                self._answer_user = answer_user
+        """Set the user's answer."""
+        if isinstance(answer_user, list):
+            self._answer_user = answer_user
+        elif answer_user >= 0:
+            self._answer_user = answer_user
 
     @property
     def answer_user_remainder(self):
