@@ -350,10 +350,16 @@ class GUI_Exam(Exam):
         self.home_scrollbar = Scrollbar(self.home_frame, orient="vertical", command=self.home_canvas.yview)
         self.home_canvas.configure(yscrollcommand=self.home_scrollbar.set)
         self.home_scroll_frame = Frame(self.home_canvas, bg=self.bg_color)
-        self.home_canvas.create_window((0, 0), window=self.home_scroll_frame, anchor="nw")
+        self.scroll_window = self.home_canvas.create_window(
+            (0, 0), window=self.home_scroll_frame, anchor="n"
+        )
         self.home_scroll_frame.bind(
             "<Configure>",
             lambda e: self._update_scrollregion(),
+        )
+        self.home_canvas.bind(
+            "<Configure>",
+            lambda e: self.home_canvas.coords(self.scroll_window, e.width / 2, 0),
         )
         self.container = Frame(self.home_scroll_frame, bg=self.bg_color)
         self.banner_label = Label(self.container, text="🧮", font=("Comic Sans MS", 60), bg=self.bg_color)
@@ -666,6 +672,9 @@ class GUI_Exam(Exam):
     def _update_scrollregion(self):
         """Update canvas scrollregion and toggle scrollbar."""
         self.home_canvas.configure(scrollregion=self.home_canvas.bbox("all"))
+        self.home_canvas.coords(
+            self.scroll_window, self.home_canvas.winfo_width() / 2, 0
+        )
         region = self.home_canvas.bbox("all")
         if region and region[3] <= self.home_canvas.winfo_height():
             if self.home_scrollbar.winfo_ismapped():
