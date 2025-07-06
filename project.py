@@ -2,11 +2,16 @@
 import random
 import re
 from collections import Counter
+import os
 import pyttsx3
 from tkinter import *
 from tkinter import messagebox
 from datetime import datetime
 from fpdf import FPDF
+
+
+OUTPUT_DIR = r"C:\Users\vijen\OneDrive\Wisdom\Sikhi\6 Machine Learning\2 CS50's Introduction to Programming with Python\0.8 Codex OpenAI\0 Worksheets"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 class Exam:
@@ -1356,7 +1361,7 @@ class GUI_Exam(Exam):
             c = f"Test Ended: {self.test_end}"
             d = f"Exam Duration: {round((self.end_time - self.start_time).total_seconds()/60, 2)} minutes"
             e = f"Difficulty Level: {self.difficulty_chosen}"
-        with open(f"{self.file_name}.txt", (self.file_open_mode)) as file:
+        with open(os.path.join(OUTPUT_DIR, f"{self.file_name}.txt"), (self.file_open_mode)) as file:
             if a!= None and b==None and c==None and d==None:
                 file.write(str(f"{a}\n\n"))
                 return
@@ -1388,7 +1393,7 @@ class GUI_Exam(Exam):
         self.pdf.set_title("Mathematics Practice")
         self.pdf.set_author("Vijendra Singh")
         self.pdf.print_chapter(f"{self.file_name}.txt")
-        self.pdf.output(f"Worksheet_{datetime.now().strftime('%d-%b-%y-%I%M')}.pdf")
+        self.pdf.output(os.path.join(OUTPUT_DIR, f"Worksheet_{datetime.now().strftime('%d-%b-%y-%I%M')}.pdf"))
 
 
 class PDF(FPDF, GUI_Exam):
@@ -1430,7 +1435,7 @@ class PDF(FPDF, GUI_Exam):
 
     def chapter_body(self, filepath):
         # Reading text file:
-        with open(f"{root_instance.file_name}.txt", "rb") as fh:
+        with open(os.path.join(OUTPUT_DIR, f"{root_instance.file_name}.txt"), "rb") as fh:
             txt = fh.read().decode("latin-1")
         # Setting font: Times 12
         self.set_font("Times", size=12)
