@@ -86,6 +86,13 @@ class Exam:
                             break
                     choices = None
                 break
+            elif S == "factor":
+                X = random.randint(2, 100)
+                Y = None
+                Z = len(factors_of(X))
+                choices = factors_of(X)
+                quiz = f"How many factors does {X} have?"
+                break
         return cls(quiz, X, Y, Z, S, choices)
 
      # Initialize Exam object
@@ -116,6 +123,9 @@ class Exam:
             self.answer_actual_remainder = self._X % self._Y
         elif self._S == "fraction":
             self.answer_actual = self._Z
+        elif self._S == "factor":
+            self.answer_actual = self._Z
+            self.factor_list = self._choices
         self.answer_user = 0
         self.answer_user_remainder = 0
 
@@ -248,6 +258,7 @@ class GUI_Exam(Exam):
         self.multiply_variable = StringVar()
         self.divide_variable = StringVar()
         self.fraction_variable = StringVar()
+        self.factor_variable = StringVar()
         self.select_all_variable = StringVar()
         self.display_question = StringVar()
         self.grade = StringVar()
@@ -260,12 +271,14 @@ class GUI_Exam(Exam):
         self.multiply_checkbox = Checkbutton(self.home_frame, text="Multiplication", variable=self.multiply_variable, onvalue="*", offvalue=None, font=("Bell MT", 18))
         self.divide_checkbox = Checkbutton(self.home_frame, text="Division", variable=self.divide_variable, onvalue="/", offvalue=None, font=("Bell MT", 18))
         self.fraction_checkbox = Checkbutton(self.home_frame, text="Fractions", variable=self.fraction_variable, onvalue="fraction", offvalue=None, font=("Bell MT", 18))
+        self.factor_checkbox = Checkbutton(self.home_frame, text="Factors & Primes", variable=self.factor_variable, onvalue="factor", offvalue=None, font=("Bell MT", 18))
         self.select_all_checkbox = Checkbutton(self.home_frame, text="All of the above!", variable=self.select_all_variable, onvalue="select_all", offvalue=None, font=("Bell MT", 18))
         self.add_checkbox.deselect(), self.subtract_checkbox.deselect(), self.multiply_checkbox.deselect()
-        self.divide_checkbox.deselect(), self.fraction_checkbox.deselect(), self.select_all_checkbox.deselect()
+        self.divide_checkbox.deselect(), self.fraction_checkbox.deselect(), self.factor_checkbox.deselect(), self.select_all_checkbox.deselect()
         self.label_num_question = Label(self.home_frame, text="Type number of Questions:", font=("Bell MT", 20), justify="left")
         self.input_num_question = Entry(self.home_frame, font=("Bell MT", 20), justify="center", width=3)
         self.start_exam_button = Button(self.home_frame, text="Start Exam!", font=("Bell MT", 14), command=self.start)
+        self.factor_mode_button = Button(self.home_frame, text="Factors & Primes", font=("Bell MT", 14), command=self.launch_factor_mode)
         self.test_checkbox = Label(
             self.home_frame,
             text="Please ensure correct selections & entry!",
@@ -321,6 +334,7 @@ class GUI_Exam(Exam):
         self.divide_checkbox.grid(row=8, column=2)
         self.fraction_checkbox.grid(row=8, column=3)
         self.select_all_checkbox.grid(row=8, column=4)
+        self.factor_checkbox.grid(row=9, column=3)
         self.difficulty_label.grid(row=9, column=0, columnspan=2)
         self.difficulty_menu.grid(row=9, column=2)
         Label(self.home_frame, width=38, height=5).grid(row=10, column=0, columnspan=5)
@@ -328,21 +342,23 @@ class GUI_Exam(Exam):
         self.input_num_question.grid(row=11, column=2)
         Label(self.home_frame, width=38, height=5).grid(row=12, column=0, columnspan=5)
         self.start_exam_button.grid(row=13, column=0, columnspan=5)
+        self.factor_mode_button.grid(row=14, column=0, columnspan=5, pady=(10,0))
         
     def checkbox_status(self):
         if self.select_all_variable.get() == "select_all" and not self.input_num_question.get() == "" and str(self.input_num_question.get()).isdecimal() and int(self.input_num_question.get()) > 0:
-            self.add_variable.set("+"), self.subtract_variable.set("-"), self.multiply_variable.set("*"), self.divide_variable.set("/"), self.fraction_variable.set("fraction")
+            self.add_variable.set("+"), self.subtract_variable.set("-"), self.multiply_variable.set("*"), self.divide_variable.set("/"), self.fraction_variable.set("fraction"), self.factor_variable.set("factor")
         status_list = [
             self.add_variable.get(),
             self.subtract_variable.get(),
             self.multiply_variable.get(),
             self.divide_variable.get(),
             self.fraction_variable.get(),
+            self.factor_variable.get(),
         ]
         if all(item in ("0", "", None) for item in status_list):
             return "Please Select atleast One option!"
         else:
-            return [self.add_variable.get(), self.subtract_variable.get(), self.multiply_variable.get(), self.divide_variable.get(), self.fraction_variable.get()]
+            return [self.add_variable.get(), self.subtract_variable.get(), self.multiply_variable.get(), self.divide_variable.get(), self.fraction_variable.get(), self.factor_variable.get()]
     
     def start(self):
         """Start the exam based on user selections."""
@@ -351,6 +367,58 @@ class GUI_Exam(Exam):
             self.test_checkbox.grid(row=14, column=0, columnspan=5, pady=(5, 0))
         else:
             self.launch_exam_frame()
+
+    def launch_factor_mode(self):
+        self.home_frame.pack_forget()
+        self.factor_frame = Frame(GUI_Exam.root)
+        self.factor_frame.pack(fill="both", expand=1)
+        self.factor_count = 0
+        Label(self.factor_frame, text="Enter a number between 2 and 100:", font=("Bell MT", 30)).grid(row=0, column=0, columnspan=3, pady=20)
+        self.factor_entry = Entry(self.factor_frame, font=("Bell MT", 20), justify="center", width=7)
+        self.factor_entry.grid(row=1, column=0, columnspan=3)
+        self.factor_submit = Button(self.factor_frame, text="Submit", font=("Bell MT", 16), command=self.process_factor_input)
+        self.factor_submit.grid(row=2, column=0, columnspan=3, pady=10)
+        self.factor_feedback = Label(self.factor_frame, font=("Bell MT", 20), wraplength=1000, justify="left")
+        self.factor_feedback.grid(row=3, column=0, columnspan=3, pady=20)
+        self.factor_back_button = Button(self.factor_frame, text="Back to Home", font=("Bell MT", 14), command=self.back_from_factor)
+
+    def process_factor_input(self):
+        val = self.factor_entry.get()
+        if not val.isdecimal():
+            messagebox.showerror("Input Error", "Please type Numbers only!")
+            if self.sound_variable.get() != "":
+                GUI_Exam.engine.say(self.for_incorrect_answer())
+                GUI_Exam.engine.runAndWait()
+            return
+        n = int(val)
+        if n < 2 or n > 100:
+            self.factor_feedback.config(text="Please enter a number between 2 and 100", bg="yellow")
+            if self.sound_variable.get() != "":
+                GUI_Exam.engine.say(self.for_incorrect_answer())
+                GUI_Exam.engine.runAndWait()
+            return
+        facs = factors_of(n)
+        if len(facs) == 2:
+            status = "a prime number"
+        else:
+            status = "a composite number" if n != 1 else "neither prime nor composite"
+        pair = twin_prime_pair(n)
+        pair_text = f" and part of the twin prime pair {pair}" if pair else ""
+        msg = f"Factors of {n}: {', '.join(map(str, facs))}. It is {status}{pair_text}."
+        self.factor_feedback.config(text=msg, bg="lightgreen")
+        if self.sound_variable.get() != "":
+            GUI_Exam.engine.say(self.for_correct_answer())
+            GUI_Exam.engine.say(msg)
+            GUI_Exam.engine.runAndWait()
+        self.factor_count += 1
+        if self.factor_count >= 3:
+            self.factor_submit.config(state=DISABLED)
+            self.factor_back_button.grid(row=4, column=0, columnspan=3)
+        self.factor_entry.delete(0, END)
+
+    def back_from_factor(self):
+        self.factor_frame.pack_forget()
+        self.launch_home_frame()
             
     def launch_exam_frame(self):
         self.status_checkbox = self.checkbox_status()                 # To fetch the user selection
@@ -502,6 +570,12 @@ class GUI_Exam(Exam):
                 else:
                     messagebox.showerror("Input Error", "Please type Numbers only!")
                     return
+        elif self.question_paper._S == "factor":
+            if self.input_user_answer.get().isdecimal():
+                self.question_paper.answer_user = int(self.input_user_answer.get())
+            else:
+                messagebox.showerror("Input Error", "Please type Numbers only!")
+                return
         else:
             if self.input_user_answer.get().isdecimal():
                 self.question_paper.answer_user = int(self.input_user_answer.get())
@@ -533,6 +607,15 @@ class GUI_Exam(Exam):
                         text=f"Correct!, {self.question_paper.question} is {self.question_paper.answer_actual}",
                         bg="green",
                     )
+            elif self.question_paper._S == "factor":
+                factors = self.question_paper.factor_list
+                status = "a prime number" if len(factors) == 2 else "a composite number"
+                pair = twin_prime_pair(self.question_paper._X)
+                pair_text = f" and part of the twin prime pair {pair}" if pair else ""
+                self.evaluation_feedback.config(
+                    text=f"Correct! Factors of {self.question_paper._X}: {', '.join(map(str, factors))}. It is {status}{pair_text}",
+                    bg="green",
+                )
             else:
                 self.evaluation_feedback.config(
                     text=f"Correct!, {self.question_paper.question} is {self.question_paper.answer_actual}",
@@ -597,6 +680,18 @@ class GUI_Exam(Exam):
                                     f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}"
                                 )
                                 GUI_Exam.engine.runAndWait()
+                    elif self.question_paper._S == "factor":
+                        factors = self.question_paper.factor_list
+                        status = "a prime number" if len(factors) == 2 else "a composite number"
+                        pair = twin_prime_pair(self.question_paper._X)
+                        pair_text = f" and part of the twin prime pair {pair}" if pair else ""
+                        self.evaluation_feedback.config(
+                            text=f"Incorrect!, {self.question_paper._X} has {self.question_paper.answer_actual} factors not {self.question_paper.answer_user}. Factors: {', '.join(map(str, factors))}. It is {status}{pair_text}",
+                            bg="red",
+                        )
+                        if self.sound_variable.get() != "":
+                            GUI_Exam.engine.say("Incorrect!")
+                            GUI_Exam.engine.runAndWait()
                     else:
                         self.evaluation_feedback.config(
                             text=f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}",
@@ -912,6 +1007,26 @@ def evaluate(answer_user, answer_actual, answer_user_remainder=None, answer_actu
             return True
         else:
             return False
+
+def factors_of(n: int):
+    return [i for i in range(1, n + 1) if n % i == 0]
+
+def is_prime(n: int) -> bool:
+    if n < 2:
+        return False
+    for i in range(2, int(n ** 0.5) + 1):
+        if n % i == 0:
+            return False
+    return True
+
+def twin_prime_pair(n: int):
+    if not is_prime(n):
+        return None
+    if n - 2 >= 2 and is_prime(n - 2):
+        return (n - 2, n)
+    if n + 2 <= 100 and is_prime(n + 2):
+        return (n, n + 2)
+    return None
 
 def tell_grade(grade):
     """Provide a random congratulatory message based on the grade."""
