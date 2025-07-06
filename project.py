@@ -23,6 +23,11 @@ else:
 SAVE_FILE = os.path.join(script_dir, ".save_path.txt")
 
 
+def resource_path(filename: str) -> str:
+    """Return absolute path to a resource file."""
+    return os.path.join(resource_dir, filename)
+
+
 def get_output_dir():
     """Return a writable directory for output files."""
     path = None
@@ -369,7 +374,12 @@ class GUI_Exam(Exam):
         cls.root.title("MathQuest Adventures")
         cls.root.state('zoomed')
         cls.root.geometry("1530x775")
-        cls.root.iconbitmap(os.path.join(resource_dir, "Icon.ico"))
+        icon_path = resource_path("Icon.ico")
+        if os.path.exists(icon_path):
+            try:
+                cls.root.iconbitmap(icon_path)
+            except Exception:
+                pass
         cls.root.configure(bg="#F0F8FF")
         return cls()
             
