@@ -58,22 +58,33 @@ class Exam:
                     quiz = f"{X} / {Y}"
                     break
             elif S == "fraction":
-                # ensure we have enough unique numerators for 4 options
-                Y = random.randint(5, 8)
-                X = random.randint(1, Y - 1)
-                correct = random.randint(0, 3)
-                available_nums = [n for n in range(1, Y) if n != X]
-                wrong_nums = random.sample(available_nums, 3)
-                choices = []
-                wrong_idx = 0
-                for i in range(4):
-                    if i == correct:
-                        choices.append((X, Y))
-                    else:
-                        choices.append((wrong_nums[wrong_idx], Y))
-                        wrong_idx += 1
-                quiz = f"Select the diagram for {X}/{Y}"
-                Z = correct
+                if random.choice([True, False]):
+                    # ensure we have enough unique numerators for 4 options
+                    Y = random.randint(5, 8)
+                    X = random.randint(1, Y - 1)
+                    correct = random.randint(0, 3)
+                    available_nums = [n for n in range(1, Y) if n != X]
+                    wrong_nums = random.sample(available_nums, 3)
+                    choices = []
+                    wrong_idx = 0
+                    for i in range(4):
+                        if i == correct:
+                            choices.append((X, Y))
+                        else:
+                            choices.append((wrong_nums[wrong_idx], Y))
+                            wrong_idx += 1
+                    quiz = f"Select the diagram for {X}/{Y}"
+                    Z = correct
+                else:
+                    while True:
+                        X = random.randint(3, 100)
+                        Y = random.randint(2, 10)
+                        Z = random.randint(1000, 10000)
+                        if X % Y == 0 and X / Y != 1:
+                            quiz = f"{X}/{Y} of {Z}"
+                            Z = int(X / Y) * Z
+                            break
+                    choices = None
                 break
         return cls(quiz, X, Y, Z, S, choices)
 
@@ -380,24 +391,31 @@ class GUI_Exam(Exam):
             self.label_user_answer.grid(row=6, column=1, rowspan=2, columnspan=2)
             self.input_user_answer.grid(row=6, column=2, rowspan=2, columnspan=1, sticky="E")
         elif self.question_paper._S == "fraction":
-            self.label_user_answer.grid_forget()
-            self.input_user_answer.grid_forget()
-            self.label_user_answer_remainder.grid_forget()
-            self.input_user_answer_remainder.grid_forget()
-            self.options_frame = Frame(self.exam_frame)
-            self.options_frame.grid(row=6, column=1, columnspan=6)
-            for i, frac in enumerate(self.question_paper.choices):
-                frame = Frame(self.options_frame)
-                canvas_width, canvas_height = 80, 50
-                canvas = Canvas(frame, width=canvas_width, height=canvas_height)
-                for j in range(frac[1]):
-                    x0 = j * (canvas_width / frac[1])
-                    x1 = (j + 1) * (canvas_width / frac[1])
-                    color = "blue" if j < frac[0] else "white"
-                    canvas.create_rectangle(x0, 0, x1, canvas_height, fill=color, outline="black")
-                canvas.pack()
-                Radiobutton(frame, variable=self.choice_var, value=i).pack()
-                frame.grid(row=0, column=i, padx=5)
+            if self.question_paper.choices:
+                self.label_user_answer.grid_forget()
+                self.input_user_answer.grid_forget()
+                self.label_user_answer_remainder.grid_forget()
+                self.input_user_answer_remainder.grid_forget()
+                self.options_frame = Frame(self.exam_frame)
+                self.options_frame.grid(row=6, column=1, columnspan=6)
+                for i, frac in enumerate(self.question_paper.choices):
+                    frame = Frame(self.options_frame)
+                    canvas_width, canvas_height = 80, 50
+                    canvas = Canvas(frame, width=canvas_width, height=canvas_height)
+                    for j in range(frac[1]):
+                        x0 = j * (canvas_width / frac[1])
+                        x1 = (j + 1) * (canvas_width / frac[1])
+                        color = "blue" if j < frac[0] else "white"
+                        canvas.create_rectangle(x0, 0, x1, canvas_height, fill=color, outline="black")
+                    canvas.pack()
+                    Radiobutton(frame, variable=self.choice_var, value=i).pack()
+                    frame.grid(row=0, column=i, padx=5)
+            else:
+                self.label_user_answer.config(text="Type Answer Here:")
+                self.label_user_answer_remainder.grid_forget()
+                self.input_user_answer_remainder.grid_forget()
+                self.label_user_answer.grid(row=6, column=1, rowspan=2, columnspan=2)
+                self.input_user_answer.grid(row=6, column=2, rowspan=2, columnspan=1, sticky="E")
         else:
             self.label_user_answer.config(text="Type Answer Here:")
             self.label_user_answer_remainder.grid_forget()
@@ -417,10 +435,17 @@ class GUI_Exam(Exam):
                 messagebox.showerror("Input Error", "Please type Numbers only!")
                 return
         elif self.question_paper._S == "fraction":
-            if self.choice_var.get() == -1:
-                messagebox.showerror("Input Error", "Please select an option!")
-                return
-            self.question_paper.answer_user = self.choice_var.get()
+            if self.question_paper.choices:
+                if self.choice_var.get() == -1:
+                    messagebox.showerror("Input Error", "Please select an option!")
+                    return
+                self.question_paper.answer_user = self.choice_var.get()
+            else:
+                if self.input_user_answer.get().isdecimal():
+                    self.question_paper.answer_user = int(self.input_user_answer.get())
+                else:
+                    messagebox.showerror("Input Error", "Please type Numbers only!")
+                    return
         else:
             if self.input_user_answer.get().isdecimal():
                 self.question_paper.answer_user = int(self.input_user_answer.get())
@@ -442,10 +467,16 @@ class GUI_Exam(Exam):
                     bg="green",
                 )
             elif self.question_paper._S == "fraction":
-                self.evaluation_feedback.config(
-                    text="Correct!",
-                    bg="green",
-                )
+                if self.question_paper.choices:
+                    self.evaluation_feedback.config(
+                        text="Correct!",
+                        bg="green",
+                    )
+                else:
+                    self.evaluation_feedback.config(
+                        text=f"Correct!, {self.question_paper.question} is {self.question_paper.answer_actual}",
+                        bg="green",
+                    )
             else:
                 self.evaluation_feedback.config(
                     text=f"Correct!, {self.question_paper.question} is {self.question_paper.answer_actual}",
@@ -492,13 +523,24 @@ class GUI_Exam(Exam):
                         GUI_Exam.engine.runAndWait()
                 else:
                     if self.question_paper._S == "fraction":
-                        self.evaluation_feedback.config(
-                            text="Incorrect!",
-                            bg="red",
-                        )
-                        if self.sound_variable.get() != "":
-                            GUI_Exam.engine.say("Incorrect!")
-                            GUI_Exam.engine.runAndWait()
+                        if self.question_paper.choices:
+                            self.evaluation_feedback.config(
+                                text="Incorrect!",
+                                bg="red",
+                            )
+                            if self.sound_variable.get() != "":
+                                GUI_Exam.engine.say("Incorrect!")
+                                GUI_Exam.engine.runAndWait()
+                        else:
+                            self.evaluation_feedback.config(
+                                text=f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}",
+                                bg="red",
+                            )
+                            if self.sound_variable.get() != "":
+                                GUI_Exam.engine.say(
+                                    f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}"
+                                )
+                                GUI_Exam.engine.runAndWait()
                     else:
                         self.evaluation_feedback.config(
                             text=f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}",
@@ -668,7 +710,7 @@ class GUI_Exam(Exam):
             self.file_open_mode = "a"
         if self.test_end == None:
             a = self.display_question.get()
-            if self.question_paper._S == "fraction":
+            if self.question_paper._S == "fraction" and self.question_paper.choices:
                 b = f"Your Answer: Option {self.choice_var.get()+1}"
             else:
                 b = f"Your Answer: {self.input_user_answer.get()}"
