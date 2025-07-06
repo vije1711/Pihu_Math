@@ -259,6 +259,7 @@ class GUI_Exam(Exam):
         self.divide_variable = StringVar()
         self.fraction_variable = StringVar()
         self.factors_primes_variable = StringVar()
+        self.sieve_variable = StringVar()
         self.select_all_variable = StringVar()
         self.display_question = StringVar()
         self.grade = StringVar()
@@ -278,6 +279,15 @@ class GUI_Exam(Exam):
             onvalue="factors_primes",
             offvalue=None,
             font=("Bell MT", 18),
+        )
+        self.sieve_checkbox = Checkbutton(
+            self.home_frame,
+            text="Sieve of Eratosthenes",
+            variable=self.sieve_variable,
+            onvalue="sieve",
+            offvalue=None,
+            font=("Bell MT", 18),
+            command=self.toggle_sieve_checkbox,
         )
         self.select_all_checkbox = Checkbutton(self.home_frame, text="All of the above!", variable=self.select_all_variable, onvalue="select_all", offvalue=None, font=("Bell MT", 18))
         self.add_checkbox.deselect(), self.subtract_checkbox.deselect(), self.multiply_checkbox.deselect()
@@ -343,6 +353,7 @@ class GUI_Exam(Exam):
         self.fraction_checkbox.grid(row=8, column=3)
         self.factors_primes_checkbox.grid(row=8, column=4)
         self.select_all_checkbox.grid(row=8, column=5)
+        self.sieve_checkbox.grid(row=9, column=3, columnspan=2)
         self.difficulty_label.grid(row=9, column=0, columnspan=2)
         self.difficulty_menu.grid(row=9, column=2)
         Label(self.home_frame, width=38, height=5).grid(row=10, column=0, columnspan=5)
@@ -352,7 +363,32 @@ class GUI_Exam(Exam):
         self.start_exam_button.grid(row=13, column=0, columnspan=5)
         self.factor_mode_button.grid(row=14, column=0, columnspan=5, pady=(10,0))
         self.sieve_mode_button.grid(row=15, column=0, columnspan=5, pady=(10,0))
-        
+
+    def toggle_sieve_checkbox(self):
+        if self.sieve_variable.get() == "sieve":
+            for cb in [
+                self.add_checkbox,
+                self.subtract_checkbox,
+                self.multiply_checkbox,
+                self.divide_checkbox,
+                self.fraction_checkbox,
+                self.factors_primes_checkbox,
+                self.select_all_checkbox,
+            ]:
+                cb.deselect()
+                cb.config(state=DISABLED)
+        else:
+            for cb in [
+                self.add_checkbox,
+                self.subtract_checkbox,
+                self.multiply_checkbox,
+                self.divide_checkbox,
+                self.fraction_checkbox,
+                self.factors_primes_checkbox,
+                self.select_all_checkbox,
+            ]:
+                cb.config(state=NORMAL)
+
     def checkbox_status(self):
         if self.select_all_variable.get() == "select_all" and not self.input_num_question.get() == "" and str(self.input_num_question.get()).isdecimal() and int(self.input_num_question.get()) > 0:
             self.add_variable.set("+")
@@ -384,6 +420,9 @@ class GUI_Exam(Exam):
     def start(self):
         """Start the exam based on user selections."""
         self.test_checkbox.grid_forget()
+        if self.sieve_variable.get() == "sieve":
+            self.launch_sieve_mode()
+            return
         if self.checkbox_status() == "Please Select atleast One option!" or self.input_num_question.get() == "" or not str(self.input_num_question.get()).isdecimal() or int(self.input_num_question.get()) <= 0:
             self.test_checkbox.grid(row=14, column=0, columnspan=5, pady=(5, 0))
         else:
@@ -461,7 +500,9 @@ class GUI_Exam(Exam):
                 text=str(num),
                 width=4,
                 height=2,
-                font=("Bell MT", 16),
+                font=("Arial", 20, "bold"),
+                bg="lightblue",
+                activebackground="yellow",
                 command=lambda n=num: self.sieve_number_click(n),
             )
             row = (num - 1) // 10 + 1
@@ -482,7 +523,14 @@ class GUI_Exam(Exam):
             font=("Bell MT", 14),
             command=self.check_sieve_work,
         )
-        self.check_sieve_button.grid(row=12, column=0, columnspan=10, pady=5)
+        self.reset_sieve_button = Button(
+            self.sieve_frame,
+            text="Reset",
+            font=("Bell MT", 14),
+            command=self.reset_sieve,
+        )
+        self.check_sieve_button.grid(row=12, column=0, columnspan=5, pady=5)
+        self.reset_sieve_button.grid(row=12, column=5, columnspan=5, pady=5)
         self.sieve_back_button = Button(
             self.sieve_frame,
             text="Back to Home",
@@ -499,10 +547,17 @@ class GUI_Exam(Exam):
         GUI_Exam.root.update_idletasks()
         if n == 1:
             messagebox.showinfo("Prime Check", "1 is not a prime number.")
+            if self.sound_variable.get() != "":
+                GUI_Exam.engine.say("1 is not a prime number")
+                GUI_Exam.engine.runAndWait()
             self.mark_crossed(n)
             return
         if is_prime(n):
             self.mark_prime(n)
+            if self.sound_variable.get() != "":
+                GUI_Exam.engine.say(f"Great! {n} is a prime!")
+                GUI_Exam.engine.say(f"Crossing out multiples of {n}!")
+                GUI_Exam.engine.runAndWait()
             for m in range(n * 2, 101, n):
                 if self.sieve_state.get(m) == "unmarked":
                     self.mark_crossed(m)
@@ -547,7 +602,22 @@ class GUI_Exam(Exam):
                 f"Missed {len(missed)} primes and {len(wrong)} incorrect selections.",
             )
 
+    def reset_sieve(self):
+        for n in range(1, 101):
+            btn = self.prime_buttons[n]
+            btn.config(
+                bg="lightblue",
+                fg="black",
+                font=("Arial", 20, "bold"),
+                state=NORMAL,
+            )
+            self.sieve_state[n] = "unmarked"
+        self.prime_count = 0
+        self.update_prime_counter()
+
     def back_from_sieve(self):
+        self.sieve_variable.set(None)
+        self.toggle_sieve_checkbox()
         self.sieve_frame.pack_forget()
         self.launch_home_frame()
             
