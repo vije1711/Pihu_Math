@@ -361,23 +361,23 @@ class GUI_Exam(Exam):
         Label(self.home_frame, width=38, height=3).grid(row=1, column=0, columnspan=5)
         self.home_label.grid(row=2, column=0, rowspan=2, columnspan=5)
         Label(self.home_frame, width=38, height=5).grid(row=6, column=0, columnspan=5)
-        self.aritmatic_label.grid(row=7, column=0, rowspan=2, columnspan=2)
+        self.aritmatic_label.grid(row=7, column=0, rowspan=1, columnspan=2)
         self.add_checkbox.grid(row=7, column=2)
         self.subtract_checkbox.grid(row=7, column=3)
         self.multiply_checkbox.grid(row=7, column=4)
         self.divide_checkbox.grid(row=8, column=2)
         self.fraction_checkbox.grid(row=8, column=3)
         self.factors_primes_checkbox.grid(row=8, column=4)
-        self.prime_factor_checkbox.grid(row=8, column=5)
-        self.select_all_checkbox.grid(row=8, column=6)
-        self.difficulty_label.grid(row=9, column=0, columnspan=2)
-        self.difficulty_menu.grid(row=9, column=2)
-        Label(self.home_frame, width=38, height=5).grid(row=10, column=0, columnspan=5)
-        self.label_num_question.grid(row=11, column=0, columnspan=2)
-        self.input_num_question.grid(row=11, column=2)
+        self.prime_factor_checkbox.grid(row=9, column=2)
+        self.select_all_checkbox.grid(row=10, column=0, columnspan=5)
+        self.difficulty_label.grid(row=11, column=0, columnspan=2)
+        self.difficulty_menu.grid(row=11, column=2)
         Label(self.home_frame, width=38, height=5).grid(row=12, column=0, columnspan=5)
-        self.start_exam_button.grid(row=13, column=0, columnspan=5)
-        self.factor_mode_button.grid(row=14, column=0, columnspan=5, pady=(10,0))
+        self.label_num_question.grid(row=13, column=0, columnspan=2)
+        self.input_num_question.grid(row=13, column=2)
+        Label(self.home_frame, width=38, height=5).grid(row=14, column=0, columnspan=5)
+        self.start_exam_button.grid(row=15, column=0, columnspan=5)
+        self.factor_mode_button.grid(row=16, column=0, columnspan=5, pady=(10,0))
 
     def checkbox_status(self):
         if self.select_all_variable.get() == "select_all" and not self.input_num_question.get() == "" and str(self.input_num_question.get()).isdecimal() and int(self.input_num_question.get()) > 0:
@@ -414,7 +414,7 @@ class GUI_Exam(Exam):
         """Start the exam based on user selections."""
         self.test_checkbox.grid_forget()
         if self.checkbox_status() == "Please Select atleast One option!" or self.input_num_question.get() == "" or not str(self.input_num_question.get()).isdecimal() or int(self.input_num_question.get()) <= 0:
-            self.test_checkbox.grid(row=14, column=0, columnspan=5, pady=(5, 0))
+            self.test_checkbox.grid(row=17, column=0, columnspan=5, pady=(5, 0))
         else:
             self.launch_exam_frame()
 
