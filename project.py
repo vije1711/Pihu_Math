@@ -104,6 +104,36 @@ class Exam:
                         Z = pf
                         break
                 break
+            elif S == "hcf":
+                nums = random.sample(range(20, 201), random.choice([2, 3]))
+                method = random.choice([
+                    "listing factors",
+                    "prime factorization",
+                    "division method",
+                ])
+                if len(nums) == 2:
+                    X, Y = nums
+                    Z = None
+                else:
+                    X, Y, Z = nums
+                if len(nums) == 3:
+                    num_text = f"{nums[0]}, {nums[1]}, and {nums[2]}"
+                else:
+                    num_text = f"{nums[0]} and {nums[1]}"
+                method_text = (
+                    "by listing factors"
+                    if method == "listing factors"
+                    else (
+                        "using prime factorization"
+                        if method == "prime factorization"
+                        else "using the division method"
+                    )
+                )
+                quiz = f"Find the HCF of {num_text} {method_text}."
+                obj = cls(quiz, X, Y, Z, S, choices)
+                obj.numbers = nums
+                obj.method = method
+                return obj
         return cls(quiz, X, Y, Z, S, choices)
 
      # Initialize Exam object
@@ -141,6 +171,12 @@ class Exam:
             self.answer_actual = len(self._Z)
         elif self._S == "prime_factorization":
             self.answer_actual = self._Z
+        elif self._S == "hcf":
+            from math import gcd
+            if self._Z:
+                self.answer_actual = gcd(gcd(self._X, self._Y), self._Z)
+            else:
+                self.answer_actual = gcd(self._X, self._Y)
         self.answer_user = 0
         self.answer_user_remainder = 0
 
@@ -278,6 +314,7 @@ class GUI_Exam(Exam):
         self.fraction_variable = StringVar()
         self.factors_primes_variable = StringVar()
         self.prime_factor_variable = StringVar()
+        self.hcf_variable = StringVar()
         self.select_all_variable = StringVar()
         self.display_question = StringVar()
         self.grade = StringVar()
@@ -306,9 +343,17 @@ class GUI_Exam(Exam):
             offvalue=None,
             font=("Bell MT", 18),
         )
+        self.hcf_checkbox = Checkbutton(
+            self.home_frame,
+            text="HCF",
+            variable=self.hcf_variable,
+            onvalue="hcf",
+            offvalue=None,
+            font=("Bell MT", 18),
+        )
         self.select_all_checkbox = Checkbutton(self.home_frame, text="All of the above!", variable=self.select_all_variable, onvalue="select_all", offvalue=None, font=("Bell MT", 18))
         self.add_checkbox.deselect(), self.subtract_checkbox.deselect(), self.multiply_checkbox.deselect()
-        self.divide_checkbox.deselect(), self.fraction_checkbox.deselect(), self.factors_primes_checkbox.deselect(), self.prime_factor_checkbox.deselect(), self.select_all_checkbox.deselect()
+        self.divide_checkbox.deselect(), self.fraction_checkbox.deselect(), self.factors_primes_checkbox.deselect(), self.prime_factor_checkbox.deselect(), self.hcf_checkbox.deselect(), self.select_all_checkbox.deselect()
         self.label_num_question = Label(self.home_frame, text="Type number of Questions:", font=("Bell MT", 20), justify="left")
         self.input_num_question = Entry(self.home_frame, font=("Bell MT", 20), justify="center", width=3)
         self.start_exam_button = Button(self.home_frame, text="Start Exam!", font=("Bell MT", 14), command=self.start)
@@ -369,6 +414,7 @@ class GUI_Exam(Exam):
         self.fraction_checkbox.grid(row=8, column=3)
         self.factors_primes_checkbox.grid(row=8, column=4)
         self.prime_factor_checkbox.grid(row=9, column=2)
+        self.hcf_checkbox.grid(row=9, column=3)
         self.select_all_checkbox.grid(row=10, column=0, columnspan=5)
         self.difficulty_label.grid(row=11, column=0, columnspan=2)
         self.difficulty_menu.grid(row=11, column=2)
@@ -388,6 +434,7 @@ class GUI_Exam(Exam):
             self.fraction_variable.set("fraction")
             self.factors_primes_variable.set("factors_primes")
             self.prime_factor_variable.set("prime_factorization")
+            self.hcf_variable.set("hcf")
         status_list = [
             self.add_variable.get(),
             self.subtract_variable.get(),
@@ -396,6 +443,7 @@ class GUI_Exam(Exam):
             self.fraction_variable.get(),
             self.factors_primes_variable.get(),
             self.prime_factor_variable.get(),
+            self.hcf_variable.get(),
         ]
         if all(item in ("0", "", None) for item in status_list):
             return "Please Select atleast One option!"
@@ -408,6 +456,7 @@ class GUI_Exam(Exam):
                 self.fraction_variable.get(),
                 self.factors_primes_variable.get(),
                 self.prime_factor_variable.get(),
+                self.hcf_variable.get(),
             ]
     
     def start(self):
@@ -646,6 +695,12 @@ class GUI_Exam(Exam):
                 )
                 return
             self.question_paper.answer_user = parsed
+        elif self.question_paper._S == "hcf":
+            if self.input_user_answer.get().isdecimal():
+                self.question_paper.answer_user = int(self.input_user_answer.get())
+            else:
+                messagebox.showerror("Input Error", "Please type Numbers only!")
+                return
         else:
             if self.input_user_answer.get().isdecimal():
                 self.question_paper.answer_user = int(self.input_user_answer.get())
@@ -714,6 +769,18 @@ class GUI_Exam(Exam):
             elif self.question_paper._S == "prime_factorization":
                 ans = " × ".join(map(str, sorted(self.question_paper.answer_actual)))
                 msg = f"Correct! Prime factorization of {self.question_paper._X} is {ans}"
+                self.evaluation_feedback.config(text=msg, bg="green")
+                if self.sound_variable.get() != "":
+                    GUI_Exam.engine.say(self.for_correct_answer())
+                    GUI_Exam.engine.say(msg)
+                    GUI_Exam.engine.runAndWait()
+            elif self.question_paper._S == "hcf":
+                nums = self.question_paper.numbers
+                if len(nums) == 3:
+                    ntext = f"{nums[0]}, {nums[1]}, and {nums[2]}"
+                else:
+                    ntext = f"{nums[0]} and {nums[1]}"
+                msg = f"Correct! The HCF of {ntext} is {self.question_paper.answer_actual}."
                 self.evaluation_feedback.config(text=msg, bg="green")
                 if self.sound_variable.get() != "":
                     GUI_Exam.engine.say(self.for_correct_answer())
@@ -809,6 +876,17 @@ class GUI_Exam(Exam):
                     elif self.question_paper._S == "prime_factorization":
                         ans = " × ".join(map(str, sorted(self.question_paper.answer_actual)))
                         msg = f"Incorrect. The correct prime factorization of {self.question_paper._X} is {ans}"
+                        self.evaluation_feedback.config(text=msg, bg="red")
+                        if self.sound_variable.get() != "":
+                            GUI_Exam.engine.say(msg)
+                            GUI_Exam.engine.runAndWait()
+                    elif self.question_paper._S == "hcf":
+                        nums = self.question_paper.numbers
+                        if len(nums) == 3:
+                            ntext = f"{nums[0]}, {nums[1]}, and {nums[2]}"
+                        else:
+                            ntext = f"{nums[0]} and {nums[1]}"
+                        msg = f"Incorrect. The correct HCF of {ntext} is {self.question_paper.answer_actual}."
                         self.evaluation_feedback.config(text=msg, bg="red")
                         if self.sound_variable.get() != "":
                             GUI_Exam.engine.say(msg)
