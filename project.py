@@ -647,10 +647,14 @@ class GUI_Exam(Exam):
         Generate and display a new math question.
         """
         self.question_paper = Exam.quiz(self.status_checkbox, self.difficulty_chosen)
-        self.display_question.set(
-            f"Q.{self.question_asked + 1} What will be the result of {self.question_paper.question}?"
-        )
-        self.question_label.config(text=self.display_question.get())
+        if self.question_paper._S in ["+", "-", "*", "/"]:
+            formatted = (
+                f"Q.{self.question_asked + 1} What will be the result of {self.question_paper.question}?"
+            )
+        else:
+            formatted = f"Q.{self.question_asked + 1} {self.question_paper.question}"
+        self.display_question.set(formatted)
+        self.question_label.config(text=formatted)
         self.question_asked += 1
 
         if self.options_frame:
