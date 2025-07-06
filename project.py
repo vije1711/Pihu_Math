@@ -248,6 +248,7 @@ class GUI_Exam(Exam):
         self.multiply_variable = StringVar()
         self.divide_variable = StringVar()
         self.fraction_variable = StringVar()
+        self.factors_primes_variable = StringVar()
         self.select_all_variable = StringVar()
         self.display_question = StringVar()
         self.grade = StringVar()
@@ -260,9 +261,17 @@ class GUI_Exam(Exam):
         self.multiply_checkbox = Checkbutton(self.home_frame, text="Multiplication", variable=self.multiply_variable, onvalue="*", offvalue=None, font=("Bell MT", 18))
         self.divide_checkbox = Checkbutton(self.home_frame, text="Division", variable=self.divide_variable, onvalue="/", offvalue=None, font=("Bell MT", 18))
         self.fraction_checkbox = Checkbutton(self.home_frame, text="Fractions", variable=self.fraction_variable, onvalue="fraction", offvalue=None, font=("Bell MT", 18))
+        self.factors_primes_checkbox = Checkbutton(
+            self.home_frame,
+            text="Factors & Primes",
+            variable=self.factors_primes_variable,
+            onvalue="factors_primes",
+            offvalue=None,
+            font=("Bell MT", 18),
+        )
         self.select_all_checkbox = Checkbutton(self.home_frame, text="All of the above!", variable=self.select_all_variable, onvalue="select_all", offvalue=None, font=("Bell MT", 18))
         self.add_checkbox.deselect(), self.subtract_checkbox.deselect(), self.multiply_checkbox.deselect()
-        self.divide_checkbox.deselect(), self.fraction_checkbox.deselect(), self.select_all_checkbox.deselect()
+        self.divide_checkbox.deselect(), self.fraction_checkbox.deselect(), self.factors_primes_checkbox.deselect(), self.select_all_checkbox.deselect()
         self.label_num_question = Label(self.home_frame, text="Type number of Questions:", font=("Bell MT", 20), justify="left")
         self.input_num_question = Entry(self.home_frame, font=("Bell MT", 20), justify="center", width=3)
         self.start_exam_button = Button(self.home_frame, text="Start Exam!", font=("Bell MT", 14), command=self.start)
@@ -322,7 +331,8 @@ class GUI_Exam(Exam):
         self.multiply_checkbox.grid(row=7, column=4)
         self.divide_checkbox.grid(row=8, column=2)
         self.fraction_checkbox.grid(row=8, column=3)
-        self.select_all_checkbox.grid(row=8, column=4)
+        self.factors_primes_checkbox.grid(row=8, column=4)
+        self.select_all_checkbox.grid(row=8, column=5)
         self.difficulty_label.grid(row=9, column=0, columnspan=2)
         self.difficulty_menu.grid(row=9, column=2)
         Label(self.home_frame, width=38, height=5).grid(row=10, column=0, columnspan=5)
@@ -335,18 +345,31 @@ class GUI_Exam(Exam):
         
     def checkbox_status(self):
         if self.select_all_variable.get() == "select_all" and not self.input_num_question.get() == "" and str(self.input_num_question.get()).isdecimal() and int(self.input_num_question.get()) > 0:
-            self.add_variable.set("+"), self.subtract_variable.set("-"), self.multiply_variable.set("*"), self.divide_variable.set("/"), self.fraction_variable.set("fraction")
+            self.add_variable.set("+")
+            self.subtract_variable.set("-")
+            self.multiply_variable.set("*")
+            self.divide_variable.set("/")
+            self.fraction_variable.set("fraction")
+            self.factors_primes_variable.set("factors_primes")
         status_list = [
             self.add_variable.get(),
             self.subtract_variable.get(),
             self.multiply_variable.get(),
             self.divide_variable.get(),
             self.fraction_variable.get(),
+            self.factors_primes_variable.get(),
         ]
         if all(item in ("0", "", None) for item in status_list):
             return "Please Select atleast One option!"
         else:
-            return [self.add_variable.get(), self.subtract_variable.get(), self.multiply_variable.get(), self.divide_variable.get(), self.fraction_variable.get()]
+            return [
+                self.add_variable.get(),
+                self.subtract_variable.get(),
+                self.multiply_variable.get(),
+                self.divide_variable.get(),
+                self.fraction_variable.get(),
+                self.factors_primes_variable.get(),
+            ]
     
     def start(self):
         """Start the exam based on user selections."""
