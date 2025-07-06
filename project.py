@@ -431,7 +431,12 @@ class GUI_Exam(Exam):
         self.start_time, self.test_start, self.question_paper = None, None, None
         self.attempts_counter = 0
         self.check_button = Button(self.exam_frame, text="Submit", font=("Bell MT", 16),command=self.check_user_answer)
-        self.evaluation_feedback = Label(self.exam_frame, font=("Bell MT", 20), justify="center")
+        self.evaluation_feedback = Label(
+            self.exam_frame,
+            font=("Bell MT", 20),
+            justify="left",
+            wraplength=900,
+        )
         self.evaluation_result, self.end_time, self.test_end = None, None, None
         self.result_frame = Frame(self.root)
         self.grade_label = Label(self.result_frame, font=("Bell MT", 50), justify="center", width=38)
@@ -851,7 +856,7 @@ class GUI_Exam(Exam):
                     text=f"Correct!, {self.question_paper.question} is {self.question_paper.answer_actual}",
                     bg="green",
                 )
-            self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+            self.evaluation_feedback.grid(row=12, column=1, columnspan=8, pady=10)
             self.exam_score += 1
             if self.sound_variable.get() != "":
                 if self.question_paper._S not in ["factors_primes", "prime_factorization"]:
@@ -863,7 +868,7 @@ class GUI_Exam(Exam):
                     text="Your Answer is Incorrect, you've got 2 more attempts!",
                     bg="teal",
                 )
-                self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+                self.evaluation_feedback.grid(row=12, column=1, columnspan=8, pady=10)
                 self.attempts_counter += 1
                 if self.sound_variable.get() != "":
                     GUI_Exam.engine.say(self.for_incorrect_answer())
@@ -874,7 +879,7 @@ class GUI_Exam(Exam):
                     text="Your Answer is Incorrect, it's the last attempt!",
                     bg="yellow",
                 )
-                self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+                self.evaluation_feedback.grid(row=12, column=1, columnspan=8, pady=10)
                 self.attempts_counter += 1
                 if self.sound_variable.get() != "":
                     GUI_Exam.engine.say(self.for_incorrect_answer())
@@ -974,7 +979,7 @@ class GUI_Exam(Exam):
                                 f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}"
                             )
                             GUI_Exam.engine.runAndWait()
-                self.evaluation_feedback.grid(row=12, column=1, columnspan=8)
+                self.evaluation_feedback.grid(row=12, column=1, columnspan=8, pady=10)
                 self.attempts_counter += 1
                 if self.sound_variable.get() != "":
                     GUI_Exam.engine.say(self.for_failed_attempt())
