@@ -1505,31 +1505,26 @@ class PDF(FPDF, GUI_Exam):
         if os.path.exists(logo_path):
             # Rendering logo if available
             self.image(logo_path, 10, 8, 15)
-            # Setting font: helvetica bold 15
-            self.set_font("helvetica", "B", 15)
-            # Calculating width of title and setting cursor position:
-            width = self.get_string_width(self.title) + 6
-            self.set_x((210 - width) / 2)
-            # Setting colors for frame, background and text:
-            self.set_draw_color(0, 80, 180)
-            self.set_fill_color(230, 230, 0)
-            self.set_text_color(220, 50, 50)
-            # Setting thickness of the frame (1 mm)
-            self.set_line_width(1)
-            # Printing title:
-            self.cell(
-                width,
-                9,
-                self.title,
-                border=1,
-                align="C",
-                fill=True,
-            )
-        else:
-            # Fallback title if logo image is missing
-            self.set_font("helvetica", "B", 20)
-            self.set_text_color(0, 102, 204)
-            self.cell(0, 10, "📘 MathQuest Adventures", align="C")
+        # Setting font: helvetica bold 15
+        self.set_font("helvetica", "B", 15)
+        # Calculating width of title and setting cursor position:
+        width = self.get_string_width(self.title) + 6
+        self.set_x((210 - width) / 2)
+        # Setting colors for frame, background and text:
+        self.set_draw_color(0, 80, 180)
+        self.set_fill_color(230, 230, 0)
+        self.set_text_color(220, 50, 50)
+        # Setting thickness of the frame (1 mm)
+        self.set_line_width(1)
+        # Printing title:
+        self.cell(
+            width,
+            9,
+            self.title,
+            border=1,
+            align="C",
+            fill=True,
+        )
         # Performing a line break:
         self.ln(15)
     
