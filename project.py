@@ -1501,8 +1501,10 @@ class GUI_Exam(Exam):
 
 class PDF(FPDF, GUI_Exam):
     def header(self):
-        # Rendering logo:
-        self.image(os.path.join(resource_dir, "logo_image.jpg"), 10, 8, 15)
+        logo_path = resource_path("logo_image.jpg")
+        if os.path.exists(logo_path):
+            # Render logo only if available
+            self.image(logo_path, 10, 8, 15)
         # Setting font: helvetica bold 15
         self.set_font("helvetica", "B", 15)
         # Calculating width of title and setting cursor position:
