@@ -1001,8 +1001,17 @@ class GUI_Exam(Exam):
             messagebox.showerror("Error", f"Failed to load data: {e}")
             return
 
-        log_df = log_df.merge(idx_df[["Start Time", "Session Number"]], on="Start Time", how="left")
-        log_df["Session Number"] = log_df["Session Number"].fillna(method="ffill")
+        # The log sheet stores start times with a date component while the
+        # index only contains the time. Extract the time portion before
+        # merging so we can match rows correctly.
+        log_df["_time"] = log_df["Start Time"].astype(str).str[-8:]
+        idx_df["_time"] = idx_df["Start Time"].astype(str).str[-8:]
+        log_df = log_df.merge(idx_df[["_time", "Session Number"]], on="_time", how="left")
+        log_df.drop(columns=["_time"], inplace=True)
+
+        # Use forward fill for the session numbers so consecutive rows share
+        # the appropriate session identifier.
+        log_df["Session Number"] = log_df["Session Number"].ffill()
 
         diff_hist = load_difficulty_history()
 
