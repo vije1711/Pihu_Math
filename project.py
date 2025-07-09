@@ -732,12 +732,6 @@ class GUI_Exam(Exam):
             font=("Comic Sans MS", 16),
             command=self.start,
         )
-        self.factor_mode_button = Button(
-            self.container,
-            text="Factors & Primes",
-            font=("Comic Sans MS", 16),
-            command=self.launch_factor_mode,
-        )
         self.progress_button = Button(
             self.container,
             text="\U0001F4CA View Progress",
@@ -880,8 +874,7 @@ class GUI_Exam(Exam):
         self.label_num_question.grid(row=5, column=0, sticky="e")
         self.input_num_question.grid(row=5, column=1, sticky="w")
         self.start_exam_button.grid(row=6, column=0, columnspan=2, pady=(20, 5))
-        self.factor_mode_button.grid(row=7, column=0, columnspan=2, pady=(5, 10))
-        self.progress_button.grid(row=8, column=0, columnspan=2, pady=(5, 20))
+        self.progress_button.grid(row=7, column=0, columnspan=2, pady=(5, 20))
 
         # bind mousewheel scrolling for canvas
         self.home_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
@@ -952,7 +945,7 @@ class GUI_Exam(Exam):
         """Start the exam based on user selections."""
         self.test_checkbox.grid_forget()
         if self.checkbox_status() == "Please Select atleast One option!" or self.input_num_question.get() == "" or not str(self.input_num_question.get()).isdecimal() or int(self.input_num_question.get()) <= 0:
-            self.test_checkbox.grid(row=9, column=0, columnspan=2, pady=(5, 0))
+            self.test_checkbox.grid(row=8, column=0, columnspan=2, pady=(5, 0))
         else:
             self.launch_exam_frame()
 
