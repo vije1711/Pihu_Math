@@ -212,28 +212,62 @@ class Exam:
         S = operation
         score = difficulty_scores.get(S, 2.0)
         adjust = {"Easy": -0.5, "Medium": 0.0, "Hard": 0.5}
-        limit = int(10 ** max(score + adjust.get(level, 0.0), 1))
+        difficulty = score + adjust.get(level, 0.0)
         choices = None
+        limit = int(10 ** max(difficulty, 1))
         while True:
-            X = random.randint(1, limit)
-            Y = random.randint(1, limit)
-            Z = random.randint(1, limit)
-
-            if S == "+":
-                quiz = f"{X} + {Y}"
-                break
-            elif S == "-":
+            if S == "-":
+                if difficulty < 1.5:
+                    X = random.randint(5, 20)
+                    Y = random.randint(1, 4)
+                elif difficulty < 2.5:
+                    X = random.randint(30, 99)
+                    Y = random.randint(10, 29)
+                else:
+                    X = random.randint(100, 299)
+                    Y = random.randint(50, 150)
                 if X > Y:
                     quiz = f"{X} - {Y}"
                     break
+                continue
+            elif S == "+":
+                if difficulty < 1.5:
+                    X = random.randint(1, 20)
+                    Y = random.randint(1, 20)
+                elif difficulty < 2.5:
+                    X = random.randint(10, 99)
+                    Y = random.randint(10, 99)
+                else:
+                    X = random.randint(100, 299)
+                    Y = random.randint(50, 150)
+                quiz = f"{X} + {Y}"
+                break
             elif S == "*":
+                if difficulty < 1.5:
+                    X = random.randint(2, 9)
+                    Y = random.randint(2, 9)
+                elif difficulty < 2.5:
+                    X = random.randint(5, 12)
+                    Y = random.randint(3, 12)
+                else:
+                    X = random.randint(10, 20)
+                    Y = random.randint(5, 20)
                 quiz = f"{X} * {Y}"
                 break
             elif S == "/":
-                Y = random.randint(2, min(9, limit))
-                if X % Y != 0 and X > Y:
+                if difficulty < 1.5:
+                    Y = random.randint(2, 5)
+                    X = random.randint(Y + 1, 20)
+                elif difficulty < 2.5:
+                    Y = random.randint(2, 9)
+                    X = random.randint(Y + 1, 99)
+                else:
+                    Y = random.randint(3, 12)
+                    X = random.randint(Y + 1, 299)
+                if X % Y != 0:
                     quiz = f"{X} / {Y}"
                     break
+                continue
             elif S == "fraction":
                 if random.choice([True, False]):
                     # ensure we have enough unique numerators for 4 options
