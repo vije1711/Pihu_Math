@@ -152,7 +152,15 @@ class Exam:
                         break
                 break
             elif S == "hcf":
-                nums = random.sample(range(20, 201), random.choice([2, 3]))
+                from math import gcd
+                count = random.choice([2, 3])
+                while True:
+                    nums = random.sample(range(10, 1000), count)
+                    g = gcd(nums[0], nums[1])
+                    if count == 3:
+                        g = gcd(g, nums[2])
+                    if g > 1:
+                        break
                 method = random.choice([
                     "listing factors",
                     "prime factorization",
