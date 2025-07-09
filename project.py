@@ -457,7 +457,18 @@ class GUI_Exam(Exam):
         engine.setProperty('pitch', 75)                                 # espeak supports pitch
     except Exception:
         pass
-    
+
+    @staticmethod
+    def speak(*texts):
+        """Speak one or more text snippets safely."""
+        for t in texts:
+            GUI_Exam.engine.say(t)
+        try:
+            GUI_Exam.engine.runAndWait()
+        except RuntimeError:
+            GUI_Exam.engine.stop()
+            GUI_Exam.engine.runAndWait()
+
     root = Tk()
     
     @classmethod
@@ -919,15 +930,13 @@ class GUI_Exam(Exam):
         if not val.isdecimal():
             messagebox.showerror("Input Error", "Please type Numbers only!")
             if self.sound_variable.get() != "":
-                GUI_Exam.engine.say(self.for_incorrect_answer())
-                GUI_Exam.engine.runAndWait()
+                GUI_Exam.speak(self.for_incorrect_answer())
             return
         n = int(val)
         if n < 2 or n > 100:
             self.factor_feedback.config(text="Please enter a number between 2 and 100", bg="yellow")
             if self.sound_variable.get() != "":
-                GUI_Exam.engine.say(self.for_incorrect_answer())
-                GUI_Exam.engine.runAndWait()
+                GUI_Exam.speak(self.for_incorrect_answer())
             return
         facs = factors_of(n)
         if len(facs) == 2:
@@ -939,9 +948,7 @@ class GUI_Exam(Exam):
         msg = f"Factors of {n}: {', '.join(map(str, facs))}. It is {status}{pair_text}."
         self.factor_feedback.config(text=msg, bg="lightgreen")
         if self.sound_variable.get() != "":
-            GUI_Exam.engine.say(self.for_correct_answer())
-            GUI_Exam.engine.say(msg)
-            GUI_Exam.engine.runAndWait()
+            GUI_Exam.speak(self.for_correct_answer(), msg)
         self.factor_count += 1
         if self.factor_count >= 3:
             self.factor_submit.config(state=DISABLED)
@@ -1238,17 +1245,13 @@ class GUI_Exam(Exam):
                     bg="green",
                 )
                 if self.sound_variable.get() != "":
-                    GUI_Exam.engine.say(self.for_correct_answer())
-                    GUI_Exam.engine.say(explanation)
-                    GUI_Exam.engine.runAndWait()
+                    GUI_Exam.speak(self.for_correct_answer(), explanation)
             elif self.question_paper._S == "prime_factorization":
                 ans = " × ".join(map(str, sorted(self.question_paper.answer_actual)))
                 msg = f"Correct! Prime factorization of {self.question_paper._X} is {ans}"
                 self.evaluation_feedback.config(text=msg, bg="green")
                 if self.sound_variable.get() != "":
-                    GUI_Exam.engine.say(self.for_correct_answer())
-                    GUI_Exam.engine.say(msg)
-                    GUI_Exam.engine.runAndWait()
+                    GUI_Exam.speak(self.for_correct_answer(), msg)
             elif self.question_paper._S == "hcf":
                 nums = self.question_paper.numbers
                 if len(nums) == 3:
@@ -1258,9 +1261,7 @@ class GUI_Exam(Exam):
                 msg = f"Correct! The HCF of {ntext} is {self.question_paper.answer_actual}."
                 self.evaluation_feedback.config(text=msg, bg="green")
                 if self.sound_variable.get() != "":
-                    GUI_Exam.engine.say(self.for_correct_answer())
-                    GUI_Exam.engine.say(msg)
-                    GUI_Exam.engine.runAndWait()
+                    GUI_Exam.speak(self.for_correct_answer(), msg)
             elif self.question_paper._S == "lcm":
                 nums = self.question_paper.numbers
                 if len(nums) == 3:
@@ -1271,10 +1272,7 @@ class GUI_Exam(Exam):
                 msg = f"Correct! The LCM of {ntext} is {self.question_paper.answer_actual}."
                 self.evaluation_feedback.config(text=f"{msg}\n{explanation}", bg="green")
                 if self.sound_variable.get() != "":
-                    GUI_Exam.engine.say(self.for_correct_answer())
-                    GUI_Exam.engine.say(msg)
-                    GUI_Exam.engine.say(explanation)
-                    GUI_Exam.engine.runAndWait()
+                    GUI_Exam.speak(self.for_correct_answer(), msg, explanation)
             else:
                 self.evaluation_feedback.config(
                     text=f"Correct!, {self.question_paper.question} is {self.question_paper.answer_actual}",
@@ -1285,8 +1283,7 @@ class GUI_Exam(Exam):
             self.exam_score += 1
             if self.sound_variable.get() != "":
                 if self.question_paper._S not in ["factors_primes", "prime_factorization"]:
-                    GUI_Exam.engine.say(self.for_correct_answer())
-                    GUI_Exam.engine.runAndWait()
+                    GUI_Exam.speak(self.for_correct_answer())
         else:
             if self.attempts_counter == 0:
                 self.evaluation_feedback.config(
@@ -1296,8 +1293,7 @@ class GUI_Exam(Exam):
                 self.evaluation_feedback.grid(row=12, column=1, columnspan=8, pady=10)
                 self.attempts_counter += 1
                 if self.sound_variable.get() != "":
-                    GUI_Exam.engine.say(self.for_incorrect_answer())
-                    GUI_Exam.engine.runAndWait()
+                    GUI_Exam.speak(self.for_incorrect_answer())
             elif self.attempts_counter == 1:
                 self.evaluation_feedback.grid_forget()
                 self.evaluation_feedback.config(
@@ -1307,8 +1303,7 @@ class GUI_Exam(Exam):
                 self.evaluation_feedback.grid(row=12, column=1, columnspan=8, pady=10)
                 self.attempts_counter += 1
                 if self.sound_variable.get() != "":
-                    GUI_Exam.engine.say(self.for_incorrect_answer())
-                    GUI_Exam.engine.runAndWait()
+                    GUI_Exam.speak(self.for_incorrect_answer())
             elif self.attempts_counter == 2:
                 self.evaluation_feedback.grid_forget()
                 if self.question_paper._S == "/":
@@ -1317,10 +1312,9 @@ class GUI_Exam(Exam):
                         bg="red",
                     )
                     if self.sound_variable.get() != "":
-                        GUI_Exam.engine.say(
+                        GUI_Exam.speak(
                             f"Incorrect!, For {self.question_paper.question} the Quotient is {self.question_paper.answer_actual} & Remainder is {self.question_paper.answer_actual_remainder}"
                         )
-                        GUI_Exam.engine.runAndWait()
                 else:
                     if self.question_paper._S == "fraction":
                         if self.question_paper.choices:
@@ -1329,18 +1323,16 @@ class GUI_Exam(Exam):
                                 bg="red",
                             )
                             if self.sound_variable.get() != "":
-                                GUI_Exam.engine.say("Incorrect!")
-                                GUI_Exam.engine.runAndWait()
+                                GUI_Exam.speak("Incorrect!")
                         else:
                             self.evaluation_feedback.config(
                                 text=f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}",
                                 bg="red",
                             )
                             if self.sound_variable.get() != "":
-                                GUI_Exam.engine.say(
+                                GUI_Exam.speak(
                                     f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}"
                                 )
-                                GUI_Exam.engine.runAndWait()
                     elif self.question_paper._S == "factors_primes":
                         number = self.question_paper._X
                         facs = self.question_paper.factors
@@ -1361,15 +1353,13 @@ class GUI_Exam(Exam):
                             bg="red",
                         )
                         if self.sound_variable.get() != "":
-                            GUI_Exam.engine.say(f"Incorrect! {explanation}")
-                            GUI_Exam.engine.runAndWait()
+                            GUI_Exam.speak(f"Incorrect! {explanation}")
                     elif self.question_paper._S == "prime_factorization":
                         ans = " × ".join(map(str, sorted(self.question_paper.answer_actual)))
                         msg = f"Incorrect. The correct prime factorization of {self.question_paper._X} is {ans}"
                         self.evaluation_feedback.config(text=msg, bg="red")
                         if self.sound_variable.get() != "":
-                            GUI_Exam.engine.say(msg)
-                            GUI_Exam.engine.runAndWait()
+                            GUI_Exam.speak(msg)
                     elif self.question_paper._S == "hcf":
                         nums = self.question_paper.numbers
                         if len(nums) == 3:
@@ -1379,8 +1369,7 @@ class GUI_Exam(Exam):
                         msg = f"Incorrect. The correct HCF of {ntext} is {self.question_paper.answer_actual}."
                         self.evaluation_feedback.config(text=msg, bg="red")
                         if self.sound_variable.get() != "":
-                            GUI_Exam.engine.say(msg)
-                            GUI_Exam.engine.runAndWait()
+                            GUI_Exam.speak(msg)
                     elif self.question_paper._S == "lcm":
                         nums = self.question_paper.numbers
                         if len(nums) == 3:
@@ -1391,24 +1380,27 @@ class GUI_Exam(Exam):
                         msg = f"Incorrect. The LCM of {ntext} is {self.question_paper.answer_actual}."
                         self.evaluation_feedback.config(text=f"{msg}\n{explanation}", bg="red")
                         if self.sound_variable.get() != "":
-                            GUI_Exam.engine.say(msg)
-                            GUI_Exam.engine.say(explanation)
-                            GUI_Exam.engine.runAndWait()
+                            GUI_Exam.speak(msg, explanation)
                     else:
                         self.evaluation_feedback.config(
                             text=f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}",
                             bg="red",
                         )
                         if self.sound_variable.get() != "":
-                            GUI_Exam.engine.say(
+                            GUI_Exam.speak(
                                 f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}"
                             )
-                            GUI_Exam.engine.runAndWait()
                 self.evaluation_feedback.grid(row=12, column=1, columnspan=8, pady=10)
                 self.attempts_counter += 1
                 if self.sound_variable.get() != "":
-                    GUI_Exam.engine.say(self.for_failed_attempt())
-                    GUI_Exam.engine.runAndWait()
+                    GUI_Exam.speak(self.for_failed_attempt())
+
+        # record time taken for this question
+        elapsed = (datetime.now() - self.current_question_start).total_seconds()
+        stats = self.stats[self.question_paper._S]
+        stats["total_time"] += elapsed
+        if self.evaluation_result and self.attempts_counter == 0:
+            stats["first_try_correct"] += 1
 
         # record time taken for this question
         elapsed = (datetime.now() - self.current_question_start).total_seconds()
@@ -1467,8 +1459,7 @@ class GUI_Exam(Exam):
         
         # 3.2.3 Grades announcment
         if self.sound_variable.get() != "":
-            GUI_Exam.engine.say(tell_grade(self.grade.get()))
-            GUI_Exam.engine.runAndWait()
+            GUI_Exam.speak(tell_grade(self.grade.get()))
 
         self.store_data()
         self.make_pdf()
