@@ -1118,6 +1118,15 @@ class GUI_Exam(Exam):
             ax.set_xlabel("Operation")
             ax.set_ylabel("Accuracy (%)")
 
+        def time_of_day_accuracy(ax):
+            hrs = pd.to_datetime(idx_df["Start Time"], errors="coerce").dt.hour
+            ax.scatter(hrs, idx_df["Accuracy (%)"])
+            ax.set_title("Time of Day vs Accuracy")
+            ax.set_xlabel("Hour of Day")
+            ax.set_ylabel("Accuracy (%)")
+            ax.set_xticks(range(0, 24, 1))
+            ax.set_xticklabels(range(0, 24, 1), rotation=45)
+
         def duration_vs_accuracy(ax):
             ax.scatter(idx_df["Duration"], idx_df["Accuracy (%)"])
             ax.set_title("Duration vs Accuracy")
@@ -1148,22 +1157,35 @@ class GUI_Exam(Exam):
             diff_df = pd.DataFrame(rows)
             merged = log_df.merge(diff_df, on=["Session Number", "Question Type"], how="inner")
             ax.scatter(
-                merged["Difficulty Score"],
                 merged["Accuracy (%)"],
+                merged["Difficulty Score"],
                 s=merged["Total Questions"] * 5,
                 alpha=0.6,
             )
-            ax.set_title("Difficulty vs Accuracy")
-            ax.set_xlabel("Difficulty Score")
-            ax.set_ylabel("Accuracy (%)")
+            ax.set_title("Difficulty Score vs Accuracy")
+            ax.set_xlabel("Accuracy (%)")
+            ax.set_ylabel("Avg Difficulty Score")
+
+        def attempts_per_type(ax):
+            data = log_df.groupby("Question Type").apply(
+                lambda g: g["Total Attempts"].sum() / g["Total Questions"].sum()
+            )
+            data.plot(kind="bar", ax=ax)
+            ax.set_title("Attempts per Question Type")
+            ax.set_xlabel("Operation")
+            ax.set_ylabel("Avg Attempts")
 
         add_chart(accuracy_over_time, 0, 0)
         add_chart(difficulty_evolution, 0, 1)
         add_chart(session_score, 0, 2)
+
         add_chart(topic_accuracy, 1, 0)
-        add_chart(duration_vs_accuracy, 1, 1)
-        add_chart(topic_distribution, 1, 2)
-        add_chart(difficulty_vs_accuracy, 2, 0, colspan=3)
+        add_chart(topic_distribution, 1, 1)
+        add_chart(duration_vs_accuracy, 1, 2)
+
+        add_chart(time_of_day_accuracy, 2, 0)
+        add_chart(difficulty_vs_accuracy, 2, 1)
+        add_chart(attempts_per_type, 2, 2)
 
 
     def launch_exam_frame(self):
