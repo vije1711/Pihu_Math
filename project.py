@@ -12,6 +12,7 @@ from datetime import datetime
 from fpdf import FPDF
 import pandas as pd
 import numpy as np
+import math
 from openpyxl import Workbook, load_workbook
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -212,67 +213,116 @@ class Exam:
         S = operation
         score = difficulty_scores.get(S, 2.0)
         adjust = {"Easy": -0.5, "Medium": 0.0, "Hard": 0.5}
-        limit = int(10 ** max(score + adjust.get(level, 0.0), 1))
+        difficulty = score + adjust.get(level, 0.0)
         choices = None
+        limit = int(10 ** max(difficulty, 1))
         while True:
-            X = random.randint(1, limit)
-            Y = random.randint(1, limit)
-            Z = random.randint(1, limit)
-
-            if S == "+":
-                quiz = f"{X} + {Y}"
-                break
-            elif S == "-":
+            if S == "-":
+                if difficulty < 1.5:
+                    X = random.randint(5, 20)
+                    Y = random.randint(1, 4)
+                elif difficulty < 2.5:
+                    X = random.randint(30, 99)
+                    Y = random.randint(10, 29)
+                else:
+                    X = random.randint(100, 299)
+                    Y = random.randint(50, 150)
                 if X > Y:
                     quiz = f"{X} - {Y}"
                     break
+                continue
+            elif S == "+":
+                if difficulty < 1.5:
+                    X = random.randint(1, 20)
+                    Y = random.randint(1, 20)
+                elif difficulty < 2.5:
+                    X = random.randint(10, 99)
+                    Y = random.randint(10, 99)
+                else:
+                    X = random.randint(100, 299)
+                    Y = random.randint(50, 150)
+                quiz = f"{X} + {Y}"
+                break
             elif S == "*":
+                if difficulty < 1.5:
+                    X = random.randint(2, 9)
+                    Y = random.randint(2, 9)
+                elif difficulty < 2.5:
+                    X = random.randint(5, 12)
+                    Y = random.randint(3, 12)
+                else:
+                    X = random.randint(10, 20)
+                    Y = random.randint(5, 20)
                 quiz = f"{X} * {Y}"
                 break
             elif S == "/":
-                Y = random.randint(2, min(9, limit))
-                if X % Y != 0 and X > Y:
+                if difficulty < 1.5:
+                    Y = random.randint(2, 5)
+                    X = random.randint(Y + 1, 20)
+                elif difficulty < 2.5:
+                    Y = random.randint(2, 9)
+                    X = random.randint(Y + 1, 99)
+                else:
+                    Y = random.randint(3, 12)
+                    X = random.randint(Y + 1, 299)
+                if X % Y != 0:
                     quiz = f"{X} / {Y}"
                     break
+                continue
             elif S == "fraction":
-                if random.choice([True, False]):
-                    # ensure we have enough unique numerators for 4 options
-                    Y = random.randint(5, 8)
-                    X = random.randint(1, Y - 1)
-                    correct = random.randint(0, 3)
-                    available_nums = [n for n in range(1, Y) if n != X]
-                    wrong_nums = random.sample(available_nums, 3)
-                    choices = []
-                    wrong_idx = 0
-                    for i in range(4):
-                        if i == correct:
-                            choices.append((X, Y))
-                        else:
-                            choices.append((wrong_nums[wrong_idx], Y))
-                            wrong_idx += 1
-                    quiz = f"Select the diagram for {X}/{Y}"
-                    Z = correct
+                if difficulty < 1.5:
+                    # add fractions with like denominators
+                    denom = random.randint(2, 6)
+                    a = random.randint(1, denom - 2)
+                    b = random.randint(1, denom - a - 1)
+                    X, Y, Z = a, b, denom
+                    quiz = f"{a}/{denom} + {b}/{denom}"
+                    answer = a + b
+                    Z = (answer, denom)
+                elif difficulty < 2.5:
+                    # add fractions with unlike denominators
+                    d1 = random.randint(2, 8)
+                    d2 = random.choice([n for n in range(2, 9) if n != d1])
+                    n1 = random.randint(1, d1 - 1)
+                    n2 = random.randint(1, d2 - 1)
+                    l = lcm_of_numbers([d1, d2])
+                    total = n1 * (l // d1) + n2 * (l // d2)
+                    g = math.gcd(total, l)
+                    X, Y, Z = (n1, d1), (n2, d2), None
+                    quiz = f"{n1}/{d1} + {n2}/{d2}"
+                    Z = (total // g, l // g)
                 else:
-                    while True:
-                        X = random.randint(3, 100)
-                        Y = random.randint(2, 10)
-                        Z = random.randint(1000, 10000)
-                        if X % Y == 0 and X / Y != 1:
-                            quiz = f"{X}/{Y} of {Z}"
-                            Z = int(X / Y) * Z
-                            break
-                    choices = None
+                    # simplify a fraction
+                    den = random.randint(4, 20)
+                    num = random.randint(2, den - 1)
+                    mult = random.randint(2, 5)
+                    X = num * mult
+                    Y = den * mult
+                    g = math.gcd(X, Y)
+                    quiz = f"Simplify {X}/{Y}"
+                    Z = (X // g, Y // g)
+                choices = None
                 break
             elif S == "factors_primes":
-                X = random.randint(2, 100)
+                if difficulty < 1.5:
+                    X = random.randint(2, 20)
+                elif difficulty < 2.5:
+                    X = random.randint(20, 100)
+                else:
+                    X = random.randint(100, 300)
                 quiz = f"How many factors does {X} have?"
                 Z = factors_of(X)
                 break
             elif S == "prime_factorization":
                 while True:
-                    X = random.randint(30, 150)
+                    if difficulty < 1.5:
+                        X = random.randint(20, 50)
+                    elif difficulty < 2.5:
+                        X = random.randint(50, 150)
+                    else:
+                        X = random.randint(150, 300)
                     pf = prime_factorization(X)
-                    if len(set(pf)) >= 3:
+                    if len(set(pf)) >= 2:
                         method = random.choice(["factor tree", "division"])
                         quiz = f"What are the prime factors of {X} using the {method} method?"
                         Z = pf
@@ -280,13 +330,21 @@ class Exam:
                 break
             elif S == "hcf":
                 from math import gcd
-                count = random.choice([2, 3])
+                if difficulty < 1.5:
+                    count = 2
+                    rng = range(2, 21)
+                elif difficulty < 2.5:
+                    count = 2
+                    rng = range(10, 100)
+                else:
+                    count = 3
+                    rng = range(20, 200)
                 while True:
-                    nums = random.sample(range(10, 1000), count)
+                    nums = random.sample(rng, count)
                     g = gcd(nums[0], nums[1])
                     if count == 3:
                         g = gcd(g, nums[2])
-                    if g > 10:
+                    if g > 1:
                         break
                 method = random.choice([
                     "listing factors",
@@ -317,7 +375,16 @@ class Exam:
                 obj.method = method
                 return obj
             elif S == "lcm":
-                nums = random.sample(range(6, 41), random.choice([2, 3]))
+                if difficulty < 1.5:
+                    rng = range(2, 21)
+                    count = 2
+                elif difficulty < 2.5:
+                    rng = range(6, 41)
+                    count = 2
+                else:
+                    rng = range(10, 60)
+                    count = 3
+                nums = random.sample(rng, count)
                 method = random.choice([
                     "listing multiples",
                     "prime factorization",
@@ -1376,11 +1443,14 @@ class GUI_Exam(Exam):
                     return
                 self.question_paper.answer_user = self.choice_var.get()
             else:
-                if self.input_user_answer.get().isdecimal():
-                    self.question_paper.answer_user = int(self.input_user_answer.get())
-                else:
-                    messagebox.showerror("Input Error", "Please type Numbers only!")
+                parsed = parse_fraction_input(self.input_user_answer.get())
+                if parsed is None:
+                    messagebox.showerror(
+                        "Input Error",
+                        "Please enter a number or fraction like a/b",
+                    )
                     return
+                self.question_paper.answer_user = parsed
         elif self.question_paper._S == "factors_primes":
             if self.input_user_answer.get().isdecimal():
                 self.question_paper.answer_user = int(self.input_user_answer.get())
@@ -1421,6 +1491,13 @@ class GUI_Exam(Exam):
             self.evaluation_result = (
                 user == actual and all(is_prime(f) for f in self.question_paper.answer_user)
             )
+        elif self.question_paper._S == "fraction" and not self.question_paper.choices:
+            actual = self.question_paper.answer_actual
+            user = self.question_paper.answer_user
+            if isinstance(actual, tuple):
+                self.evaluation_result = actual[0] * user[1] == user[0] * actual[1]
+            else:
+                self.evaluation_result = abs(actual - (user[0] / user[1])) < 1e-6
         else:
             self.evaluation_result = evaluate(
                 self.question_paper.answer_user,
@@ -1442,8 +1519,13 @@ class GUI_Exam(Exam):
                         bg="green",
                     )
                 else:
+                    ans = (
+                        f"{self.question_paper.answer_actual[0]}/{self.question_paper.answer_actual[1]}"
+                        if isinstance(self.question_paper.answer_actual, tuple)
+                        else str(self.question_paper.answer_actual)
+                    )
                     self.evaluation_feedback.config(
-                        text=f"Correct!, {self.question_paper.question} is {self.question_paper.answer_actual}",
+                        text=f"Correct!, {self.question_paper.question} is {ans}",
                         bg="green",
                     )
             elif self.question_paper._S == "factors_primes":
@@ -1546,13 +1628,23 @@ class GUI_Exam(Exam):
                             if self.sound_variable.get() != "":
                                 GUI_Exam.speak("Incorrect!")
                         else:
+                            ans = (
+                                f"{self.question_paper.answer_actual[0]}/{self.question_paper.answer_actual[1]}"
+                                if isinstance(self.question_paper.answer_actual, tuple)
+                                else str(self.question_paper.answer_actual)
+                            )
+                            user_ans = (
+                                f"{self.question_paper.answer_user[0]}/{self.question_paper.answer_user[1]}"
+                                if isinstance(self.question_paper.answer_user, tuple)
+                                else str(self.question_paper.answer_user)
+                            )
                             self.evaluation_feedback.config(
-                                text=f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}",
+                                text=f"Incorrect!, {self.question_paper.question} is {ans} not {user_ans}",
                                 bg="red",
                             )
                             if self.sound_variable.get() != "":
                                 GUI_Exam.speak(
-                                    f"Incorrect!, {self.question_paper.question} is {self.question_paper.answer_actual} not {self.question_paper.answer_user}"
+                                    f"Incorrect!, {self.question_paper.question} is {ans} not {user_ans}"
                                 )
                     elif self.question_paper._S == "factors_primes":
                         number = self.question_paper._X
@@ -2150,6 +2242,20 @@ def parse_factor_input(text: str):
     if not all(part.isdigit() for part in parts):
         return None
     return [int(p) for p in parts]
+
+
+def parse_fraction_input(text: str):
+    """Parse a fraction like 'a/b' or a whole number."""
+    text = text.strip()
+    if text.isdigit():
+        return int(text), 1
+    m = re.match(r"^(\d+)\s*/\s*(\d+)$", text)
+    if not m:
+        return None
+    num, den = int(m.group(1)), int(m.group(2))
+    if den == 0:
+        return None
+    return num, den
 
 
 def tell_grade(grade):
