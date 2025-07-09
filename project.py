@@ -66,7 +66,8 @@ DIFFICULTY_FILE = os.path.join(OUTPUT_DIR, "difficulty_scores.json")
 DEFAULT_DIFFICULTY = {
     "+": 2.0,
     "-": 2.0,
-    "*": 2.0,
+    # start multiplication slightly easier than other operations
+    "*": 1.5,
     "/": 2.0,
     "fraction": 2.0,
     "factors_primes": 2.0,
@@ -90,14 +91,19 @@ def save_difficulty_scores(scores):
 
 
 def write_difficulty_sheet(wb, scores):
-    """Overwrite Difficulty sheet with current scores in two columns."""
-    if "Difficulty" in wb.sheetnames:
-        ws = wb["Difficulty"]
-        wb.remove(ws)
-    diff_ws = wb.create_sheet("Difficulty")
-    diff_ws.append(["Operation", "Difficulty Score"])
-    for key, val in scores.items():
-        diff_ws.append([op_names.get(key, key), round(val, 2)])
+    """Append a timestamped row of difficulty scores."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if "Difficulty" not in wb.sheetnames:
+        diff_ws = wb.create_sheet("Difficulty")
+        headers = ["Timestamp"] + [op_names.get(k, k) for k in scores.keys()]
+        diff_ws.append(headers)
+    else:
+        diff_ws = wb["Difficulty"]
+        if diff_ws.max_row == 0:
+            headers = ["Timestamp"] + [op_names.get(k, k) for k in scores.keys()]
+            diff_ws.append(headers)
+    row = [timestamp] + [round(scores[k], 2) for k in scores.keys()]
+    diff_ws.append(row)
 
 
 difficulty_scores = load_difficulty_scores()
