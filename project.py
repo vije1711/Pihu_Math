@@ -4,12 +4,14 @@ import re
 from collections import Counter
 import os
 import sys
+import json
 import pyttsx3
 from tkinter import *
 from tkinter import messagebox, filedialog
 from datetime import datetime
 from fpdf import FPDF
 import pandas as pd
+import numpy as np
 from openpyxl import Workbook, load_workbook
 
 
@@ -57,6 +59,94 @@ def get_output_dir():
 # Folder where all generated files will be saved
 OUTPUT_DIR = get_output_dir()
 
+# --- Adaptive difficulty settings ---
+DIFFICULTY_FILE = os.path.join(OUTPUT_DIR, "difficulty_scores.json")
+DEFAULT_DIFFICULTY = {
+    "+": 2.0,
+    "-": 2.0,
+    "*": 2.0,
+    "/": 2.0,
+    "fraction": 2.0,
+    "factors_primes": 2.0,
+    "prime_factorization": 2.0,
+    "hcf": 2.0,
+    "lcm": 2.0,
+}
+
+
+def load_difficulty_scores():
+    try:
+        with open(DIFFICULTY_FILE, "r") as fh:
+            return json.load(fh)
+    except Exception:
+        return DEFAULT_DIFFICULTY.copy()
+
+
+def save_difficulty_scores(scores):
+    with open(DIFFICULTY_FILE, "w") as fh:
+        json.dump(scores, fh)
+
+
+difficulty_scores = load_difficulty_scores()
+
+
+op_names = {
+    "+": "Addition",
+    "-": "Subtraction",
+    "*": "Multiplication",
+    "/": "Division",
+    "fraction": "Fractions",
+    "factors_primes": "Factors & Primes",
+    "prime_factorization": "Prime Factorization",
+    "hcf": "HCF",
+    "lcm": "LCM",
+}
+
+
+def load_difficulty_history():
+    path = os.path.join(OUTPUT_DIR, "AllSessions.xlsx")
+    if not os.path.exists(path):
+        return {}
+    try:
+        df = pd.read_excel(path, sheet_name="Difficulty")
+    except Exception:
+        return {}
+    history = {}
+    for op in difficulty_scores.keys():
+        col = op_names.get(op, op)
+        if col in df.columns:
+            history[op] = df[col].dropna().tolist()
+    return history
+
+
+def compute_thresholds(history):
+    stats = {}
+    for op, vals in history.items():
+        if vals:
+            mean = float(np.mean(vals))
+            std = float(np.std(vals))
+        else:
+            mean = difficulty_scores.get(op, 2.0)
+            std = 0.0
+        stats[op] = (mean, std)
+    for op in difficulty_scores.keys():
+        if op not in stats:
+            stats[op] = (difficulty_scores.get(op, 2.0), 0.0)
+    return stats
+
+
+def determine_difficulty_levels(scores, stats):
+    levels = {}
+    for op, val in scores.items():
+        mean, std = stats.get(op, (val, 0.0))
+        if val < mean - std:
+            levels[op] = "Easy"
+        elif val > mean + std:
+            levels[op] = "Hard"
+        else:
+            levels[op] = "Medium"
+    return levels
+
 
 class Exam:
     """
@@ -76,18 +166,12 @@ class Exam:
         _score (int): The user's score.
     """
     @classmethod
-    def quiz(cls, sign_list, difficulty):
-        """Generate a random math question based on selected operations and difficulty."""
-        # Remove '0' from the sign list
-        while "0" in sign_list:
-            sign_list.remove("0")
-        while "" in sign_list:
-            sign_list.remove("")
-        while None in sign_list:
-            sign_list.remove(None)
-        S = random.choice(sign_list)
-        limits = {"Easy": 100, "Medium": 1000, "Hard": 10000}
-        limit = limits.get(difficulty, 100)
+    def quiz(cls, operation, level):
+        """Generate a random math question based on an operation and difficulty level."""
+        S = operation
+        score = difficulty_scores.get(S, 2.0)
+        adjust = {"Easy": -0.5, "Medium": 0.0, "Hard": 0.5}
+        limit = int(10 ** max(score + adjust.get(level, 0.0), 1))
         choices = None
         while True:
             X = random.randint(1, limit)
@@ -447,22 +531,6 @@ class GUI_Exam(Exam):
         self.display_question = StringVar()
         self.grade = StringVar()
         self.sound_variable = StringVar()
-        self.difficulty_variable = StringVar(value="Easy")
-        self.difficulty_label = Label(
-            self.container,
-            text="Select Difficulty:",
-            font=("Comic Sans MS", 20),
-            justify="left",
-            bg=self.bg_color,
-        )
-        self.difficulty_menu = OptionMenu(
-            self.container,
-            self.difficulty_variable,
-            "Easy",
-            "Medium",
-            "Hard",
-        )
-        self.difficulty_menu.config(font=("Comic Sans MS", 16))
 
         self.basic_ops_frame = LabelFrame(
             self.container,
@@ -638,7 +706,6 @@ class GUI_Exam(Exam):
             relief="groove",
         )
         self.status_checkbox, self.question_to_ask = None, None
-        self.difficulty_chosen = None
         self.question_label = Label(
             self.question_box,
             text=self.display_question.get(),
@@ -752,12 +819,10 @@ class GUI_Exam(Exam):
             widget.pack(anchor="w")
 
         self.select_all_checkbox.grid(row=4, column=0, columnspan=2, pady=(10, 10), sticky="w")
-        self.difficulty_label.grid(row=5, column=0, sticky="e", pady=(0, 10))
-        self.difficulty_menu.grid(row=5, column=1, sticky="w", pady=(0, 10))
-        self.label_num_question.grid(row=6, column=0, sticky="e")
-        self.input_num_question.grid(row=6, column=1, sticky="w")
-        self.start_exam_button.grid(row=7, column=0, columnspan=2, pady=(20, 5))
-        self.factor_mode_button.grid(row=8, column=0, columnspan=2, pady=(5, 10))
+        self.label_num_question.grid(row=5, column=0, sticky="e")
+        self.input_num_question.grid(row=5, column=1, sticky="w")
+        self.start_exam_button.grid(row=6, column=0, columnspan=2, pady=(20, 5))
+        self.factor_mode_button.grid(row=7, column=0, columnspan=2, pady=(5, 10))
 
         # bind mousewheel scrolling for canvas
         self.home_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
@@ -891,9 +956,10 @@ class GUI_Exam(Exam):
     def launch_exam_frame(self):
         self.status_checkbox = self.checkbox_status()                 # To fetch the user selection
         self.question_to_ask = int(self.input_num_question.get())     # To fetch how many question to ask
-        self.difficulty_chosen = self.difficulty_variable.get()
-        self.stats = {s: {"total_questions": 0, "correct_answers": 0, "total_attempts": 0}
+        self.stats = {s: {"total_questions": 0, "correct_answers": 0, "total_attempts": 0,
+                          "total_time": 0.0, "first_try_correct": 0}
                        for s in self.status_checkbox if s not in (None, "", "0")}
+        self.prepare_question_plan()
         self.home_frame.pack_forget()
         self.home_canvas.unbind_all("<MouseWheel>")
         self.home_canvas.unbind_all("<Button-4>")
@@ -910,14 +976,43 @@ class GUI_Exam(Exam):
         self.test_start = self.start_time.strftime("%I:%M%p")
         self.check_button.grid(row=10, column=1, columnspan=2, pady=10)
         self.generate_question()
+
+    def prepare_question_plan(self):
+        """Build a plan of operations and difficulty levels for this session."""
+        history = load_difficulty_history()
+        stats = compute_thresholds(history)
+        self.levels = determine_difficulty_levels(difficulty_scores, stats)
+
+        total = self.question_to_ask
+        base = total // 3
+        dist = {"Easy": base, "Medium": base, "Hard": base}
+        for i in range(total - base * 3):
+            dist[["Easy", "Medium", "Hard"][i]] += 1
+
+        ops_by_level = {"Easy": [], "Medium": [], "Hard": []}
+        for op in self.status_checkbox:
+            ops_by_level[self.levels.get(op, "Medium")].append(op)
+
+        plan = []
+        for lvl in ["Easy", "Medium", "Hard"]:
+            ops = ops_by_level[lvl] or self.status_checkbox
+            for _ in range(dist[lvl]):
+                plan.append((random.choice(ops), lvl))
+        random.shuffle(plan)
+        self.question_plan = plan
+        self.question_index = 0
         
     def generate_question(self):
         """
         Generate and display a new math question.
         """
-        self.question_paper = Exam.quiz(self.status_checkbox, self.difficulty_chosen)
+        op, level = self.question_plan[self.question_index]
+        self.question_index += 1
+        self.question_paper = Exam.quiz(op, level)
         if self.question_paper._S not in self.stats:
-            self.stats[self.question_paper._S] = {"total_questions": 0, "correct_answers": 0, "total_attempts": 0}
+            self.stats[self.question_paper._S] = {"total_questions": 0, "correct_answers": 0,
+                                                "total_attempts": 0, "total_time": 0.0,
+                                                "first_try_correct": 0}
         self.stats[self.question_paper._S]["total_questions"] += 1
         if self.question_paper._S in ["+", "-", "*", "/"]:
             formatted = (
@@ -927,6 +1022,7 @@ class GUI_Exam(Exam):
             formatted = f"Q.{self.question_asked + 1} {self.question_paper.question}"
         self.display_question.set(formatted)
         self.question_label.config(text=formatted)
+        self.current_question_start = datetime.now()
         self.question_asked += 1
 
         if self.options_frame:
@@ -1314,6 +1410,13 @@ class GUI_Exam(Exam):
                     GUI_Exam.engine.say(self.for_failed_attempt())
                     GUI_Exam.engine.runAndWait()
 
+        # record time taken for this question
+        elapsed = (datetime.now() - self.current_question_start).total_seconds()
+        stats = self.stats[self.question_paper._S]
+        stats["total_time"] += elapsed
+        if self.evaluation_result and self.attempts_counter == 0:
+            stats["first_try_correct"] += 1
+
         # Check if all questions have been asked
         if self.question_asked < self.question_to_ask and (self.evaluation_result == True or self.attempts_counter > 2):
             self.store_data()
@@ -1483,7 +1586,6 @@ class GUI_Exam(Exam):
             b = f"Test Dated: {self.start_time.strftime('%d-%B-%Y')}\nTest Started: {self.test_start}"
             c = f"Test Ended: {self.test_end}"
             d = f"Exam Duration: {round((self.end_time - self.start_time).total_seconds()/60, 2)} minutes"
-            e = f"Difficulty Level: {self.difficulty_chosen}"
         with open(os.path.join(OUTPUT_DIR, f"{self.file_name}.txt"), (self.file_open_mode)) as file:
             if a!= None and b==None and c==None and d==None:
                 file.write(str(f"{a}\n\n"))
@@ -1503,8 +1605,6 @@ class GUI_Exam(Exam):
                 file.write(str(f"{d}\n\n"))
                 return
             elif a!= None and b!=None and c!=None and d!=None:
-                if self.test_end is not None:
-                    file.write(str(f"{e}\n"))
                 file.write(str(f"{a}\n"))
                 file.write(str(f"{b}\n"))
                 file.write(str(f"{c}\n"))
@@ -1518,18 +1618,20 @@ class GUI_Exam(Exam):
         self.pdf.print_chapter(f"{self.file_name}.txt")
         self.pdf.output(os.path.join(OUTPUT_DIR, f"Worksheet_{datetime.now().strftime('%d-%b-%y-%I%M')}.pdf"))
 
+    def update_difficulty_scores(self):
+        """Adjust difficulty scores based on performance stats."""
+        for op, data in self.stats.items():
+            total = data.get("total_questions", 0)
+            if total == 0:
+                continue
+            avg_time = data.get("total_time", 0) / total
+            avg_attempts = data.get("total_attempts", 0) / total
+            first_try_rate = data.get("first_try_correct", 0) / total
+            delta = 0.05 * avg_time + 0.5 * (avg_attempts - 1) - 0.3 * first_try_rate
+            difficulty_scores[op] = difficulty_scores.get(op, 2.0) + delta
+
     def make_excel_summary(self):
-        op_names = {
-            "+": "Addition",
-            "-": "Subtraction",
-            "*": "Multiplication",
-            "/": "Division",
-            "fraction": "Fractions",
-            "factors_primes": "Factors & Primes",
-            "prime_factorization": "Prime Factorization",
-            "hcf": "HCF",
-            "lcm": "LCM",
-        }
+        self.update_difficulty_scores()
 
         rows = []
         for k, v in self.stats.items():
@@ -1651,6 +1753,22 @@ class GUI_Exam(Exam):
         link_cell = idx_ws.cell(row=idx_ws.max_row, column=len(idx_row) + 1)
         link_cell.hyperlink = f"#{summary_name}!A1"
         link_cell.style = "Hyperlink"
+
+        # log difficulty scores
+        diff_ws = wb["Difficulty"] if "Difficulty" in wb.sheetnames else wb.create_sheet("Difficulty")
+        if diff_ws.max_row == 0:
+            diff_ws.append([
+                "Session",
+                "Date",
+                "Time",
+            ] + [op_names.get(k, k) for k in difficulty_scores.keys()] + [op_names.get(k, k) + " Level" for k in difficulty_scores.keys()])
+        diff_ws.append([
+            session_num,
+            date_str,
+            time_str,
+        ] + [round(difficulty_scores.get(k, 0), 2) for k in difficulty_scores.keys()] + [self.levels.get(k, "") for k in difficulty_scores.keys()])
+
+        save_difficulty_scores(difficulty_scores)
 
         wb.save(path)
 
