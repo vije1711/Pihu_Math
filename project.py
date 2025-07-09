@@ -13,6 +13,8 @@ from fpdf import FPDF
 import pandas as pd
 import numpy as np
 from openpyxl import Workbook, load_workbook
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
 # Determine the directory where the script or executable is running and
@@ -716,6 +718,12 @@ class GUI_Exam(Exam):
             font=("Comic Sans MS", 16),
             command=self.launch_factor_mode,
         )
+        self.progress_button = Button(
+            self.container,
+            text="\U0001F4CA View Progress",
+            font=("Comic Sans MS", 16),
+            command=self.launch_progress_dashboard,
+        )
         self.test_checkbox = Label(
             self.container,
             text="Please ensure correct selections & entry!",
@@ -853,6 +861,7 @@ class GUI_Exam(Exam):
         self.input_num_question.grid(row=5, column=1, sticky="w")
         self.start_exam_button.grid(row=6, column=0, columnspan=2, pady=(20, 5))
         self.factor_mode_button.grid(row=7, column=0, columnspan=2, pady=(5, 10))
+        self.progress_button.grid(row=8, column=0, columnspan=2, pady=(5, 20))
 
         # bind mousewheel scrolling for canvas
         self.home_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
@@ -977,6 +986,155 @@ class GUI_Exam(Exam):
     def back_from_factor(self):
         self.factor_frame.pack_forget()
         self.launch_home_frame()
+
+    def launch_progress_dashboard(self):
+        """Open a window showing progress charts from AllSessions.xlsx."""
+        path = os.path.join(OUTPUT_DIR, "AllSessions.xlsx")
+        if not os.path.exists(path):
+            messagebox.showinfo("Progress", "No session data found yet.")
+            return
+
+        try:
+            log_df = pd.read_excel(path, sheet_name="Log")
+            idx_df = pd.read_excel(path, sheet_name="Index")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load data: {e}")
+            return
+
+        log_df = log_df.merge(idx_df[["Start Time", "Session Number"]], on="Start Time", how="left")
+        log_df["Session Number"] = log_df["Session Number"].fillna(method="ffill")
+
+        diff_hist = load_difficulty_history()
+
+        dash = Toplevel(self.root)
+        dash.title("Progress Dashboard")
+        dash.configure(bg=self.bg_color)
+
+        for i in range(3):
+            dash.rowconfigure(i, weight=1)
+            dash.columnconfigure(i, weight=1)
+
+        frames = {}
+        for r in range(3):
+            for c in range(3):
+                f = Frame(dash, bg=self.bg_color)
+                f.grid(row=r, column=c, sticky="nsew", padx=5, pady=5)
+                frames[(r, c)] = f
+
+        def add_chart(draw_func, row, col, colspan=1):
+            container = frames[(row, col)]
+            if colspan > 1:
+                container.grid(columnspan=colspan)
+            fig = Figure(figsize=(3, 2), dpi=100)
+            ax = fig.add_subplot(111)
+            draw_func(ax)
+            fig.tight_layout()
+            canvas = FigureCanvasTkAgg(fig, master=container)
+            canvas.draw()
+            widget = canvas.get_tk_widget()
+            widget.pack(fill="both", expand=True)
+
+            def open_large(event=None, func=draw_func):
+                top = Toplevel(dash)
+                top.title("Chart")
+                fig2 = Figure(figsize=(6, 4), dpi=100)
+                ax2 = fig2.add_subplot(111)
+                func(ax2)
+                fig2.tight_layout()
+                canv2 = FigureCanvasTkAgg(fig2, master=top)
+                canv2.draw()
+                canv2.get_tk_widget().pack(fill="both", expand=True)
+
+            widget.bind("<Button-1>", open_large)
+
+        def accuracy_over_time(ax):
+            data = (
+                log_df.groupby(["Session Number", "Question Type"])["Accuracy (%)"].mean().reset_index()
+            )
+            pivot = data.pivot(index="Session Number", columns="Question Type", values="Accuracy (%)")
+            pivot.plot(ax=ax, marker="o")
+            ax.set_title("Accuracy Over Time")
+            ax.set_xlabel("Session")
+            ax.set_ylabel("Accuracy (%)")
+            ax.legend(loc="best", fontsize="x-small")
+
+        def difficulty_evolution(ax):
+            if not diff_hist:
+                ax.text(0.5, 0.5, "No data", ha="center", va="center")
+                ax.set_axis_off()
+                return
+            max_len = max(len(v) for v in diff_hist.values())
+            df = pd.DataFrame({op_names.get(k, k): v + [None] * (max_len - len(v)) for k, v in diff_hist.items()})
+            df.index = range(1, max_len + 1)
+            df.plot(ax=ax, marker="o")
+            ax.set_title("Difficulty Score Evolution")
+            ax.set_xlabel("Session")
+            ax.set_ylabel("Difficulty Score")
+            ax.legend(loc="best", fontsize="x-small")
+
+        def session_score(ax):
+            idx_df.plot(x="Session Number", y="Accuracy (%)", kind="bar", ax=ax)
+            ax.set_title("Session Score Trend")
+            ax.set_xlabel("Session")
+            ax.set_ylabel("Accuracy (%)")
+            if ax.legend_:
+                ax.legend_.remove()
+
+        def topic_accuracy(ax):
+            data = log_df.groupby("Question Type").apply(
+                lambda g: g["Correct Answers"].sum() / g["Total Questions"].sum() * 100
+            )
+            data.plot(kind="bar", ax=ax)
+            ax.set_title("Topic-wise Accuracy")
+            ax.set_xlabel("Operation")
+            ax.set_ylabel("Accuracy (%)")
+
+        def duration_vs_accuracy(ax):
+            ax.scatter(idx_df["Duration"], idx_df["Accuracy (%)"])
+            ax.set_title("Duration vs Accuracy")
+            ax.set_xlabel("Duration (min)")
+            ax.set_ylabel("Accuracy (%)")
+
+        def topic_distribution(ax):
+            dist = log_df.groupby("Question Type")["Total Questions"].sum()
+            dist.plot(kind="pie", ax=ax, autopct="%1.0f%%")
+            ax.set_title("Topic Distribution")
+            ax.set_ylabel("")
+
+        def difficulty_vs_accuracy(ax):
+            if not diff_hist:
+                ax.text(0.5, 0.5, "No data", ha="center", va="center")
+                ax.set_axis_off()
+                return
+            rows = []
+            for op, vals in diff_hist.items():
+                for i, val in enumerate(vals, start=1):
+                    rows.append(
+                        {
+                            "Session Number": i,
+                            "Question Type": op_names.get(op, op),
+                            "Difficulty Score": val,
+                        }
+                    )
+            diff_df = pd.DataFrame(rows)
+            merged = log_df.merge(diff_df, on=["Session Number", "Question Type"], how="inner")
+            ax.scatter(
+                merged["Difficulty Score"],
+                merged["Accuracy (%)"],
+                s=merged["Total Questions"] * 5,
+                alpha=0.6,
+            )
+            ax.set_title("Difficulty vs Accuracy")
+            ax.set_xlabel("Difficulty Score")
+            ax.set_ylabel("Accuracy (%)")
+
+        add_chart(accuracy_over_time, 0, 0)
+        add_chart(difficulty_evolution, 0, 1)
+        add_chart(session_score, 0, 2)
+        add_chart(topic_accuracy, 1, 0)
+        add_chart(duration_vs_accuracy, 1, 1)
+        add_chart(topic_distribution, 1, 2)
+        add_chart(difficulty_vs_accuracy, 2, 0, colspan=3)
 
 
     def launch_exam_frame(self):
