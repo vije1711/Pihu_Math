@@ -29,7 +29,7 @@ Select your desired operations and specify the number of questions, then start t
 Multiplication problems begin with a slightly softer difficulty score so early sessions use smaller numbers until performance improves.
 
 After every quiz the app updates a single workbook named `AllSessions.xlsx` in the output folder. It contains a cumulative `Log` sheet, an `Index` sheet linking to each session's summary, and one `Summary_<number>` sheet per session.
-The `Difficulty` sheet in this workbook now records one row per session with a timestamp and the difficulty score of each operation so you can see how they change over time.
+The `Difficulty` sheet in this workbook records one row per session with a timestamp and the difficulty score of each operation so you can see how they change over time. These stored scores allow charts showing the evolution of difficulty and how it relates to accuracy.
 
 ## Repository contents
 - `project.py` – main program containing the GUI and quiz logic.

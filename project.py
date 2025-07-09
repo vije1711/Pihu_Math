@@ -106,6 +106,20 @@ def write_difficulty_sheet(wb, scores):
     diff_ws.append(row)
 
 
+def append_difficulty_session(scores):
+    """Persist difficulty scores to the AllSessions workbook."""
+    path = os.path.join(OUTPUT_DIR, "AllSessions.xlsx")
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    if os.path.exists(path):
+        wb = load_workbook(path)
+    else:
+        wb = Workbook()
+        default = wb.active
+        wb.remove(default)
+    write_difficulty_sheet(wb, scores)
+    wb.save(path)
+
+
 difficulty_scores = load_difficulty_scores()
 
 
@@ -1937,12 +1951,11 @@ class GUI_Exam(Exam):
         link_cell.hyperlink = f"#{summary_name}!A1"
         link_cell.style = "Hyperlink"
 
-        # log difficulty scores
-        write_difficulty_sheet(wb, difficulty_scores)
+        # save workbook and then record difficulty scores for this session
+        wb.save(path)
+        append_difficulty_session(difficulty_scores)
 
         save_difficulty_scores(difficulty_scores)
-
-        wb.save(path)
 
 
 class PDF(FPDF, GUI_Exam):
