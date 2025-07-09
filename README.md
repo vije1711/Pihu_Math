@@ -24,7 +24,7 @@ Launch the exam interface with:
 python project.py
 ```
 
-Select your desired operations, choose a difficulty level (Easy, Medium or Hard) and specify the number of questions, then start the exam. Available modes include basic arithmetic, fractions, prime factorization, HCF and the new **LCM** practice. After completion you can save a PDF report summarizing your results. A checkbox labeled **Factors & Prime Count** enables quiz questions that ask how many factors a given number has, reporting whether it is prime or composite.
+Select your desired operations and specify the number of questions, then start the exam. The app now adapts difficulty dynamically per operation. Past sessions are analyzed to classify questions as **Easy**, **Medium**, or **Hard**, and quizzes mix these levels automatically. Available modes include basic arithmetic, fractions, prime factorization, HCF and the new **LCM** practice. After completion you can save a PDF report summarizing your results. A checkbox labeled **Factors & Prime Count** enables quiz questions that ask how many factors a given number has, reporting whether it is prime or composite.
 
 After every quiz the app updates a single workbook named `AllSessions.xlsx` in the output folder. It contains a cumulative `Log` sheet, an `Index` sheet linking to each session's summary, and one `Summary_<number>` sheet per session.
 
