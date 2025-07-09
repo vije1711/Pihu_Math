@@ -87,6 +87,17 @@ def save_difficulty_scores(scores):
         json.dump(scores, fh)
 
 
+def write_difficulty_sheet(wb, scores):
+    """Overwrite Difficulty sheet with current scores in two columns."""
+    if "Difficulty" in wb.sheetnames:
+        ws = wb["Difficulty"]
+        wb.remove(ws)
+    diff_ws = wb.create_sheet("Difficulty")
+    diff_ws.append(["Operation", "Difficulty Score"])
+    for key, val in scores.items():
+        diff_ws.append([op_names.get(key, key), round(val, 2)])
+
+
 difficulty_scores = load_difficulty_scores()
 
 
@@ -112,10 +123,18 @@ def load_difficulty_history():
     except Exception:
         return {}
     history = {}
-    for op in difficulty_scores.keys():
-        col = op_names.get(op, op)
-        if col in df.columns:
-            history[op] = df[col].dropna().tolist()
+    if set(["Operation", "Difficulty Score"]).issubset(df.columns):
+        grouped = df.groupby("Operation")
+        for key in difficulty_scores.keys():
+            name = op_names.get(key, key)
+            if name in grouped.groups:
+                vals = grouped.get_group(name)["Difficulty Score"].dropna().tolist()
+                history[key] = vals
+    else:
+        for op in difficulty_scores.keys():
+            col = op_names.get(op, op)
+            if col in df.columns:
+                history[op] = df[col].dropna().tolist()
     return history
 
 
@@ -1746,18 +1765,7 @@ class GUI_Exam(Exam):
         link_cell.style = "Hyperlink"
 
         # log difficulty scores
-        diff_ws = wb["Difficulty"] if "Difficulty" in wb.sheetnames else wb.create_sheet("Difficulty")
-        if diff_ws.max_row == 0:
-            diff_ws.append([
-                "Session",
-                "Date",
-                "Time",
-            ] + [op_names.get(k, k) for k in difficulty_scores.keys()] + [op_names.get(k, k) + " Level" for k in difficulty_scores.keys()])
-        diff_ws.append([
-            session_num,
-            date_str,
-            time_str,
-        ] + [round(difficulty_scores.get(k, 0), 2) for k in difficulty_scores.keys()] + [self.levels.get(k, "") for k in difficulty_scores.keys()])
+        write_difficulty_sheet(wb, difficulty_scores)
 
         save_difficulty_scores(difficulty_scores)
 
