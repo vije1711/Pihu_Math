@@ -161,7 +161,7 @@ class Exam:
                     g = gcd(nums[0], nums[1])
                     if count == 3:
                         g = gcd(g, nums[2])
-                    if g > 1:
+                    if g > 10:
                         break
                 method = random.choice([
                     "listing factors",
