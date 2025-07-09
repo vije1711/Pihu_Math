@@ -9,6 +9,8 @@ from tkinter import *
 from tkinter import messagebox, filedialog
 from datetime import datetime
 from fpdf import FPDF
+import pandas as pd
+from openpyxl import Workbook, load_workbook
 
 
 # Determine the directory where the script or executable is running and
@@ -708,6 +710,7 @@ class GUI_Exam(Exam):
         self.file_name = f"Practice_dated_{datetime.now().strftime('%d-%b-%y-%I%M')}"
         self.file_open_mode = None
         self.pdf = None
+        self.stats = {}
         self.launch_home_frame()
                 
     def launch_home_frame(self):
@@ -889,6 +892,8 @@ class GUI_Exam(Exam):
         self.status_checkbox = self.checkbox_status()                 # To fetch the user selection
         self.question_to_ask = int(self.input_num_question.get())     # To fetch how many question to ask
         self.difficulty_chosen = self.difficulty_variable.get()
+        self.stats = {s: {"total_questions": 0, "correct_answers": 0, "total_attempts": 0}
+                       for s in self.status_checkbox if s not in (None, "", "0")}
         self.home_frame.pack_forget()
         self.home_canvas.unbind_all("<MouseWheel>")
         self.home_canvas.unbind_all("<Button-4>")
@@ -911,6 +916,9 @@ class GUI_Exam(Exam):
         Generate and display a new math question.
         """
         self.question_paper = Exam.quiz(self.status_checkbox, self.difficulty_chosen)
+        if self.question_paper._S not in self.stats:
+            self.stats[self.question_paper._S] = {"total_questions": 0, "correct_answers": 0, "total_attempts": 0}
+        self.stats[self.question_paper._S]["total_questions"] += 1
         if self.question_paper._S in ["+", "-", "*", "/"]:
             formatted = (
                 f"Q.{self.question_asked + 1} What will be the result of {self.question_paper.question}?"
@@ -1077,6 +1085,8 @@ class GUI_Exam(Exam):
                 messagebox.showerror("Input Error", "Please type Numbers only!")
                 return
 
+        self.stats[self.question_paper._S]["total_attempts"] += 1
+
         if self.question_paper._S == "factors_primes":
             self.evaluation_result = (
                 self.question_paper.answer_user == self.question_paper.answer_actual
@@ -1175,6 +1185,7 @@ class GUI_Exam(Exam):
                     bg="green",
                 )
             self.evaluation_feedback.grid(row=12, column=1, columnspan=8, pady=10)
+            self.stats[self.question_paper._S]["correct_answers"] += 1
             self.exam_score += 1
             if self.sound_variable.get() != "":
                 if self.question_paper._S not in ["factors_primes", "prime_factorization"]:
@@ -1355,9 +1366,10 @@ class GUI_Exam(Exam):
         if self.sound_variable.get() != "":
             GUI_Exam.engine.say(tell_grade(self.grade.get()))
             GUI_Exam.engine.runAndWait()
-        
+
         self.store_data()
         self.make_pdf()
+        self.make_excel_summary()
     
     def for_correct_answer(self):
         """Provide a random message for correct answers."""
@@ -1505,6 +1517,142 @@ class GUI_Exam(Exam):
         self.pdf.set_author("Vijendra Singh")
         self.pdf.print_chapter(f"{self.file_name}.txt")
         self.pdf.output(os.path.join(OUTPUT_DIR, f"Worksheet_{datetime.now().strftime('%d-%b-%y-%I%M')}.pdf"))
+
+    def make_excel_summary(self):
+        op_names = {
+            "+": "Addition",
+            "-": "Subtraction",
+            "*": "Multiplication",
+            "/": "Division",
+            "fraction": "Fractions",
+            "factors_primes": "Factors & Primes",
+            "prime_factorization": "Prime Factorization",
+            "hcf": "HCF",
+            "lcm": "LCM",
+        }
+
+        rows = []
+        for k, v in self.stats.items():
+            total = v["total_questions"]
+            correct = v["correct_answers"]
+            attempts = v["total_attempts"]
+            accuracy = round((correct / total * 100) if total else 0, 2)
+            rows.append({
+                "Question Type": op_names.get(k, k),
+                "Total Questions": total,
+                "Correct Answers": correct,
+                "Total Attempts": attempts,
+                "Accuracy (%)": accuracy,
+            })
+
+        df_summary = pd.DataFrame(rows)
+
+        meta = {
+            "Start Time": self.test_start,
+            "End Time": self.test_end,
+            "Duration": f"{round((self.end_time - self.start_time).total_seconds()/60, 2)} minutes",
+            "Total Questions": self.question_asked,
+            "Total Correct": self.exam_score,
+            "Overall Accuracy (%)": round(self.exam_score / self.question_asked * 100, 2) if self.question_asked else 0,
+        }
+        meta_df = pd.DataFrame(list(meta.items()), columns=["Metric", "Value"])
+
+        # update the master workbook with a new summary sheet and log entries
+        self.update_all_sessions_log(df_summary, meta_df)
+
+    def update_all_sessions_log(self, df_summary, meta_df):
+        """Create or update AllSessions.xlsx with log, index, and summary sheets."""
+        path = os.path.join(OUTPUT_DIR, "AllSessions.xlsx")
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+        if os.path.exists(path):
+            wb = load_workbook(path)
+        else:
+            wb = Workbook()
+            # remove default sheet and create Log and Index
+            default = wb.active
+            wb.remove(default)
+            log_ws = wb.create_sheet("Log")
+            log_ws.append([
+                "Date",
+                "Time",
+                "Question Type",
+                "Total Questions",
+                "Correct Answers",
+                "Total Attempts",
+                "Accuracy (%)",
+                "Start Time",
+                "End Time",
+                "Duration",
+            ])
+            idx_ws = wb.create_sheet("Index")
+            idx_ws.append([
+                "Session Number",
+                "Date",
+                "Start Time",
+                "End Time",
+                "Duration",
+                "Total Questions",
+                "Accuracy (%)",
+                "Summary Sheet",
+            ])
+
+        # ensure worksheets exist
+        log_ws = wb["Log"] if "Log" in wb.sheetnames else wb.create_sheet("Log")
+        idx_ws = wb["Index"] if "Index" in wb.sheetnames else wb.create_sheet("Index")
+
+        from openpyxl.utils.dataframe import dataframe_to_rows
+
+        # determine next session number based on summary sheets
+        session_num = len([s for s in wb.sheetnames if s.startswith("Summary_")]) + 1
+        summary_name = f"Summary_{session_num:03d}"
+        summary_ws = wb.create_sheet(summary_name)
+
+        # write summary table
+        for r in dataframe_to_rows(df_summary, index=False, header=True):
+            summary_ws.append(r)
+        summary_ws.append([])
+        for r in dataframe_to_rows(meta_df, index=False, header=True):
+            summary_ws.append(r)
+
+        # append entries to log sheet
+        date_str = self.start_time.strftime("%Y-%m-%d")
+        time_str = self.start_time.strftime("%H:%M:%S")
+        start_full = self.start_time.strftime("%Y-%m-%d %H:%M:%S")
+        end_full = self.end_time.strftime("%Y-%m-%d %H:%M:%S")
+        duration = round((self.end_time - self.start_time).total_seconds() / 60, 2)
+
+        for r in df_summary.to_dict("records"):
+            log_ws.append([
+                date_str,
+                time_str,
+                r["Question Type"],
+                r["Total Questions"],
+                r["Correct Answers"],
+                r["Total Attempts"],
+                r["Accuracy (%)"],
+                start_full,
+                end_full,
+                duration,
+            ])
+
+        # append index row with hyperlink to summary sheet
+        overall_accuracy = meta_df.loc[meta_df["Metric"] == "Overall Accuracy (%)", "Value"].iloc[0]
+        idx_row = [
+            session_num,
+            date_str,
+            time_str,
+            self.end_time.strftime("%H:%M:%S"),
+            duration,
+            self.question_asked,
+            overall_accuracy,
+        ]
+        idx_ws.append(idx_row + [summary_name])
+        link_cell = idx_ws.cell(row=idx_ws.max_row, column=len(idx_row) + 1)
+        link_cell.hyperlink = f"#{summary_name}!A1"
+        link_cell.style = "Hyperlink"
+
+        wb.save(path)
 
 
 class PDF(FPDF, GUI_Exam):
