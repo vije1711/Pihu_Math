@@ -1326,6 +1326,8 @@ class GUI_Exam(Exam):
         """
         Generate and display a new math question.
         """
+        # ensure the submit button is active for the new question
+        self.check_button.config(state="normal")
         op, level = self.question_plan[self.question_index]
         self.question_index += 1
         self.question_paper = Exam.quiz(op, level)
@@ -1749,12 +1751,15 @@ class GUI_Exam(Exam):
 
         # Check if all questions have been asked
         if self.question_asked < self.question_to_ask and (self.evaluation_result == True or self.attempts_counter > 2):
+            # disable submit to avoid double-counting
+            self.check_button.config(state="disabled")
             self.store_data()
             self.attempts_counter = 0
             self.generate_question()
         elif self.question_asked <= self.question_to_ask and self.evaluation_result != True and self.attempts_counter <= 2:
             pass
         elif self.question_asked == self.question_to_ask and (self.evaluation_result == True or self.attempts_counter > 2):
+            self.check_button.config(state="disabled")
             self.store_data()
             self.end_time = datetime.now()
             self.test_end = self.end_time.strftime("%I:%M%p")
