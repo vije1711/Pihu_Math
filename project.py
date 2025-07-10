@@ -227,6 +227,7 @@ class Exam:
         difficulty = score + adjust.get(level, 0.0)
         choices = None
         X = Y = Z = None
+        reverse = False
         limit = int(10 ** max(difficulty, 1))
         digits = max(1, int(difficulty))
         base = 10 ** (digits - 1)
@@ -247,19 +248,72 @@ class Exam:
                     break
                 continue
             elif S == "+":
-                if difficulty < 2:
-                    X = random.randint(1, 9)
-                    Y = random.randint(1, 9)
+                reverse = False
+                if difficulty < 1.5:
+                    # single-digit addition without carrying
+                    X = random.randint(1, 8)
+                    Y = random.randint(1, 9 - X)
                     quiz = f"{X} + {Y}"
-                elif difficulty < 3:
-                    X = random.randint(base, limit - 1)
-                    Y = random.randint(base, limit - 1)
+                elif difficulty < 2.5:
+                    # two-digit numbers, carrying optional
+                    X = random.randint(10, 99)
+                    Y = random.randint(10, 99)
                     quiz = f"{X} + {Y}"
+                elif difficulty < 3.5:
+                    # three-digit numbers with at least one carry
+                    while True:
+                        X = random.randint(100, 999)
+                        Y = random.randint(100, 999)
+                        if (
+                            (X % 10 + Y % 10 >= 10)
+                            or (X // 10 % 10 + Y // 10 % 10 >= 10)
+                            or (X // 100 + Y // 100 >= 10)
+                        ):
+                            break
+                    quiz = f"{X} + {Y}"
+                elif difficulty < 4.5:
+                    # four-digit numbers with carries in multiple places
+                    while True:
+                        X = random.randint(1000, 9999)
+                        Y = random.randint(1000, 9999)
+                        carries = sum(
+                            [
+                                1 if X % 10 + Y % 10 >= 10 else 0,
+                                1 if (X // 10) % 10 + (Y // 10) % 10 >= 10 else 0,
+                                1 if (X // 100) % 10 + (Y // 100) % 10 >= 10 else 0,
+                                1 if (X // 1000) + (Y // 1000) >= 10 else 0,
+                            ]
+                        )
+                        if carries >= 2:
+                            break
+                    quiz = f"{X} + {Y}"
+                elif difficulty < 5.5:
+                    # add three or four numbers together
+                    count = random.choice([3, 4])
+                    numbers = []
+                    for i in range(count):
+                        digits_n = random.randint(2, 4)
+                        base_n = 10 ** (digits_n - 1)
+                        limit_n = 10 ** digits_n - 1
+                        numbers.append(random.randint(base_n, limit_n))
+                    quiz = " + ".join(map(str, numbers))
+                    X, Y = numbers[0], numbers[1]
+                    Z = numbers[2:] if count > 2 else None
                 else:
-                    X = random.randint(base, limit - 1)
-                    Y = random.randint(base, limit - 1)
-                    Z = random.randint(base, limit - 1)
-                    quiz = f"{X} + {Y} + {Z}"
+                    # reverse format: missing addend
+                    digits_n = min(4, int(difficulty))
+                    base_n = 10 ** (digits_n - 1)
+                    X = random.randint(base_n, 10 ** digits_n - 1)
+                    Y = random.randint(base_n, 10 ** digits_n - 1)
+                    total = X + Y
+                    if random.choice([True, False]):
+                        quiz = f"___ + {Y} = {total}"
+                        X, Y = total, Y
+                    else:
+                        quiz = f"{X} + ___ = {total}"
+                        X, Y = total, X
+                    reverse = True
+                    Z = None
                 break
             elif S == "*":
                 if difficulty < 2:
@@ -479,10 +533,10 @@ class Exam:
                 obj.numbers = nums
                 obj.method = method
                 return obj
-        return cls(quiz, X, Y, Z, S, choices)
+        return cls(quiz, X, Y, Z, S, choices, reverse)
 
      # Initialize Exam object
-    def __init__(self, question, X, Y, Z, S, choices=None):
+    def __init__(self, question, X, Y, Z, S, choices=None, reverse=False):
         """
         Initialize Exam object.
 
@@ -490,16 +544,28 @@ class Exam:
             question (str): The math question.
             X (int): Operand X.
             Y (int): Operand Y.
-            Z (int | list): Operand Z or a list of factors for 'factors_primes'.
+            Z (int | list): Operand Z or a list of extra addends for addition or
+                a list of factors for 'factors_primes'.
             S (str): The type of operation.
+            reverse (bool): For addition, indicates a missing addend format.
         """
         self.question = question
         self._X, self._Y, self._Z, self._S = X, Y, Z, S
+        self.reverse_format = reverse
         self._choices = choices
         
         # Calculate the actual answer based on the operation
         if self._S == "+":
-            self.answer_actual = self._X + self._Y
+            if self.reverse_format:
+                # X holds the total and Y the known addend
+                self.answer_actual = self._X - self._Y
+            else:
+                total = self._X + self._Y
+                if isinstance(self._Z, (list, tuple)):
+                    total += sum(self._Z)
+                elif self._Z is not None:
+                    total += self._Z
+                self.answer_actual = total
         elif self._S == "-":
             self.answer_actual = self._X - self._Y
         elif self._S == "*":
