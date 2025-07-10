@@ -574,9 +574,14 @@ class GUI_Exam(Exam):
         """Speak one or more text snippets safely."""
         for t in texts:
             GUI_Exam.engine.say(t)
+        # Stop any ongoing speech before starting a new run loop to
+        # avoid 'run loop already started' errors.
+        if GUI_Exam.engine.isBusy():
+            GUI_Exam.engine.stop()
         try:
             GUI_Exam.engine.runAndWait()
         except RuntimeError:
+            # In case a loop is somehow still active, stop and retry once
             GUI_Exam.engine.stop()
             GUI_Exam.engine.runAndWait()
 
