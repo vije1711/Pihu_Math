@@ -501,7 +501,9 @@ class Exam:
         """Set the user's answer."""
         if isinstance(answer_user, list):
             self._answer_user = answer_user
-        elif answer_user >= 0:
+        elif isinstance(answer_user, tuple):
+            self._answer_user = answer_user
+        elif isinstance(answer_user, (int, float)):
             self._answer_user = answer_user
 
     @property
