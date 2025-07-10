@@ -228,55 +228,61 @@ class Exam:
         choices = None
         X = Y = Z = None
         limit = int(10 ** max(difficulty, 1))
+        digits = max(1, int(difficulty))
+        base = 10 ** (digits - 1)
+
         while True:
             if S == "-":
-                if difficulty < 1.5:
+                if difficulty < 2:
                     X = random.randint(5, 20)
-                    Y = random.randint(1, 4)
-                elif difficulty < 2.5:
-                    X = random.randint(30, 99)
-                    Y = random.randint(10, 29)
+                    Y = random.randint(1, X)
+                elif difficulty < 3:
+                    X = random.randint(base, limit - 1)
+                    Y = random.randint(base // 2, X)
                 else:
-                    X = random.randint(100, 299)
-                    Y = random.randint(50, 150)
+                    X = random.randint(base, limit - 1)
+                    Y = random.randint(base, X)
                 if X > Y:
                     quiz = f"{X} - {Y}"
                     break
                 continue
             elif S == "+":
-                if difficulty < 1.5:
-                    X = random.randint(1, 20)
-                    Y = random.randint(1, 20)
-                elif difficulty < 2.5:
-                    X = random.randint(10, 99)
-                    Y = random.randint(10, 99)
+                if difficulty < 2:
+                    X = random.randint(1, 9)
+                    Y = random.randint(1, 9)
+                    quiz = f"{X} + {Y}"
+                elif difficulty < 3:
+                    X = random.randint(base, limit - 1)
+                    Y = random.randint(base, limit - 1)
+                    quiz = f"{X} + {Y}"
                 else:
-                    X = random.randint(100, 299)
-                    Y = random.randint(50, 150)
-                quiz = f"{X} + {Y}"
+                    X = random.randint(base, limit - 1)
+                    Y = random.randint(base, limit - 1)
+                    Z = random.randint(base, limit - 1)
+                    quiz = f"{X} + {Y} + {Z}"
                 break
             elif S == "*":
-                if difficulty < 1.5:
+                if difficulty < 2:
                     X = random.randint(2, 9)
                     Y = random.randint(2, 9)
-                elif difficulty < 2.5:
-                    X = random.randint(5, 12)
-                    Y = random.randint(3, 12)
+                elif difficulty < 3:
+                    X = random.randint(10, 99)
+                    Y = random.randint(2, 9)
                 else:
-                    X = random.randint(10, 20)
-                    Y = random.randint(5, 20)
+                    X = random.randint(base, limit - 1)
+                    Y = random.randint(base, limit - 1)
                 quiz = f"{X} * {Y}"
                 break
             elif S == "/":
-                if difficulty < 1.5:
-                    Y = random.randint(2, 5)
-                    X = random.randint(Y + 1, 20)
-                elif difficulty < 2.5:
-                    Y = random.randint(2, 9)
+                if difficulty < 2:
+                    Y = random.randint(2, 12)
                     X = random.randint(Y + 1, 99)
+                elif difficulty < 3:
+                    Y = random.randint(2, 9)
+                    X = random.randint(Y * 2, limit - 1)
                 else:
-                    Y = random.randint(3, 12)
-                    X = random.randint(Y + 1, 299)
+                    Y = random.randint(base // 2 + 1, base)
+                    X = random.randint(Y + 1, limit - 1)
                 if X % Y != 0:
                     quiz = f"{X} / {Y}"
                     break
@@ -1742,13 +1748,6 @@ class GUI_Exam(Exam):
         if self.evaluation_result and self.attempts_counter == 0:
             stats["first_try_correct"] += 1
 
-        # record time taken for this question
-        elapsed = (datetime.now() - self.current_question_start).total_seconds()
-        stats = self.stats[self.question_paper._S]
-        stats["total_time"] += elapsed
-        if self.evaluation_result and self.attempts_counter == 0:
-            stats["first_try_correct"] += 1
-
         # Check if all questions have been asked
         if self.question_asked < self.question_to_ask and (self.evaluation_result == True or self.attempts_counter > 2):
             # disable submit to avoid double-counting
@@ -1953,16 +1952,24 @@ class GUI_Exam(Exam):
         self.pdf.output(os.path.join(OUTPUT_DIR, f"Worksheet_{datetime.now().strftime('%d-%b-%y-%I%M')}.pdf"))
 
     def update_difficulty_scores(self):
-        """Adjust difficulty scores based on performance stats."""
+        """Update difficulty for each operation based on session performance."""
         for op, data in self.stats.items():
             total = data.get("total_questions", 0)
             if total == 0:
                 continue
-            avg_time = data.get("total_time", 0) / total
+
+            accuracy = (data.get("correct_answers", 0) / total) * 100
             avg_attempts = data.get("total_attempts", 0) / total
-            first_try_rate = data.get("first_try_correct", 0) / total
-            delta = 0.05 * avg_time + 0.5 * (avg_attempts - 1) - 0.3 * first_try_rate
-            difficulty_scores[op] = difficulty_scores.get(op, 2.0) + delta
+            avg_time = data.get("total_time", 0) / total
+
+            current = difficulty_scores.get(op, DEFAULT_DIFFICULTY.get(op, 2.0))
+
+            if accuracy >= 80 and avg_attempts <= 1.3 and avg_time < 20:
+                current += 0.1
+            elif accuracy < 60 and avg_attempts >= 2.5 and avg_time > 45:
+                current -= 0.1
+
+            difficulty_scores[op] = max(0.5, current)
 
     def make_excel_summary(self):
         self.update_difficulty_scores()
