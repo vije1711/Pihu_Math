@@ -78,6 +78,17 @@ DEFAULT_DIFFICULTY = {
 }
 
 
+def clamp_percent(values):
+    """Return values clipped to the [0, 100] range."""
+    if isinstance(values, pd.Series):
+        return values.clip(lower=0, upper=100)
+    try:
+        val = float(values)
+    except Exception:
+        return values
+    return max(0.0, min(100.0, val))
+
+
 def load_difficulty_scores():
     try:
         with open(DIFFICULTY_FILE, "r") as fh:
@@ -1089,6 +1100,9 @@ class GUI_Exam(Exam):
             messagebox.showerror("Error", f"Failed to load data: {e}")
             return
 
+        log_df["Accuracy (%)"] = clamp_percent(log_df["Accuracy (%)"])
+        idx_df["Accuracy (%)"] = clamp_percent(idx_df["Accuracy (%)"])
+
         # The log sheet stores start times with a date component while the
         # index only contains the time. Extract the time portion before
         # merging so we can match rows correctly.
@@ -1148,6 +1162,7 @@ class GUI_Exam(Exam):
             data = (
                 log_df.groupby(["Session Number", "Question Type"])["Accuracy (%)"].mean().reset_index()
             )
+            data["Accuracy (%)"] = clamp_percent(data["Accuracy (%)"])
             pivot = data.pivot(index="Session Number", columns="Question Type", values="Accuracy (%)")
             pivot.plot(ax=ax, marker="o")
             ax.set_title("Accuracy Over Time")
@@ -1170,7 +1185,9 @@ class GUI_Exam(Exam):
             ax.legend(loc="best", fontsize="x-small")
 
         def session_score(ax):
-            idx_df.plot(x="Session Number", y="Accuracy (%)", kind="bar", ax=ax)
+            idx = idx_df.copy()
+            idx["Accuracy (%)"] = clamp_percent(idx["Accuracy (%)"])
+            idx.plot(x="Session Number", y="Accuracy (%)", kind="bar", ax=ax)
             ax.set_title("Session Score Trend")
             ax.set_xlabel("Session")
             ax.set_ylabel("Accuracy (%)")
@@ -1179,7 +1196,7 @@ class GUI_Exam(Exam):
 
         def topic_accuracy(ax):
             data = log_df.groupby("Question Type").apply(
-                lambda g: g["Correct Answers"].sum() / g["Total Questions"].sum() * 100
+                lambda g: clamp_percent(g["Correct Answers"].sum() / g["Total Questions"].sum() * 100)
             )
             data.plot(kind="bar", ax=ax)
             ax.set_title("Topic-wise Accuracy")
@@ -1188,7 +1205,7 @@ class GUI_Exam(Exam):
 
         def time_of_day_accuracy(ax):
             hrs = pd.to_datetime(idx_df["Start Time"], errors="coerce").dt.hour
-            ax.scatter(hrs, idx_df["Accuracy (%)"])
+            ax.scatter(hrs, clamp_percent(idx_df["Accuracy (%)"]))
             ax.set_title("Time of Day vs Accuracy")
             ax.set_xlabel("Hour of Day")
             ax.set_ylabel("Accuracy (%)")
@@ -1196,7 +1213,7 @@ class GUI_Exam(Exam):
             ax.set_xticklabels(range(0, 24, 1), rotation=45)
 
         def duration_vs_accuracy(ax):
-            ax.scatter(idx_df["Duration"], idx_df["Accuracy (%)"])
+            ax.scatter(idx_df["Duration"], clamp_percent(idx_df["Accuracy (%)"]))
             ax.set_title("Duration vs Accuracy")
             ax.set_xlabel("Duration (min)")
             ax.set_ylabel("Accuracy (%)")
@@ -1225,7 +1242,7 @@ class GUI_Exam(Exam):
             diff_df = pd.DataFrame(rows)
             merged = log_df.merge(diff_df, on=["Session Number", "Question Type"], how="inner")
             ax.scatter(
-                merged["Accuracy (%)"],
+                clamp_percent(merged["Accuracy (%)"]),
                 merged["Difficulty Score"],
                 s=merged["Total Questions"] * 5,
                 alpha=0.6,
@@ -1309,6 +1326,8 @@ class GUI_Exam(Exam):
         """
         Generate and display a new math question.
         """
+        # ensure the submit button is active for the new question
+        self.check_button.config(state="normal")
         op, level = self.question_plan[self.question_index]
         self.question_index += 1
         self.question_paper = Exam.quiz(op, level)
@@ -1732,12 +1751,15 @@ class GUI_Exam(Exam):
 
         # Check if all questions have been asked
         if self.question_asked < self.question_to_ask and (self.evaluation_result == True or self.attempts_counter > 2):
+            # disable submit to avoid double-counting
+            self.check_button.config(state="disabled")
             self.store_data()
             self.attempts_counter = 0
             self.generate_question()
         elif self.question_asked <= self.question_to_ask and self.evaluation_result != True and self.attempts_counter <= 2:
             pass
         elif self.question_asked == self.question_to_ask and (self.evaluation_result == True or self.attempts_counter > 2):
+            self.check_button.config(state="disabled")
             self.store_data()
             self.end_time = datetime.now()
             self.test_end = self.end_time.strftime("%I:%M%p")
@@ -1951,6 +1973,7 @@ class GUI_Exam(Exam):
             correct = v["correct_answers"]
             attempts = v["total_attempts"]
             accuracy = round((correct / total * 100) if total else 0, 2)
+            accuracy = clamp_percent(accuracy)
             rows.append({
                 "Question Type": op_names.get(k, k),
                 "Total Questions": total,
@@ -1961,13 +1984,15 @@ class GUI_Exam(Exam):
 
         df_summary = pd.DataFrame(rows)
 
+        overall_acc = round(self.exam_score / self.question_asked * 100, 2) if self.question_asked else 0
+        overall_acc = clamp_percent(overall_acc)
         meta = {
             "Start Time": self.test_start,
             "End Time": self.test_end,
             "Duration": f"{round((self.end_time - self.start_time).total_seconds()/60, 2)} minutes",
             "Total Questions": self.question_asked,
             "Total Correct": self.exam_score,
-            "Overall Accuracy (%)": round(self.exam_score / self.question_asked * 100, 2) if self.question_asked else 0,
+            "Overall Accuracy (%)": overall_acc,
         }
         meta_df = pd.DataFrame(list(meta.items()), columns=["Metric", "Value"])
 
@@ -2051,7 +2076,9 @@ class GUI_Exam(Exam):
             ])
 
         # append index row with hyperlink to summary sheet
-        overall_accuracy = meta_df.loc[meta_df["Metric"] == "Overall Accuracy (%)", "Value"].iloc[0]
+        overall_accuracy = clamp_percent(
+            meta_df.loc[meta_df["Metric"] == "Overall Accuracy (%)", "Value"].iloc[0]
+        )
         idx_row = [
             session_num,
             date_str,
