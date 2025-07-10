@@ -215,6 +215,7 @@ class Exam:
         adjust = {"Easy": -0.5, "Medium": 0.0, "Hard": 0.5}
         difficulty = score + adjust.get(level, 0.0)
         choices = None
+        X = Y = Z = None
         limit = int(10 ** max(difficulty, 1))
         while True:
             if S == "-":
