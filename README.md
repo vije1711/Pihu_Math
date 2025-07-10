@@ -26,6 +26,8 @@ python project.py
 
 Select your desired operations and specify the number of questions, then start the exam. The app now adapts difficulty dynamically per operation. Past sessions are analyzed to classify questions as **Easy**, **Medium**, or **Hard**, and quizzes mix these levels automatically. Available modes include basic arithmetic, fractions, prime factorization, HCF and the new **LCM** practice. After completion you can save a PDF report summarizing your results. A checkbox labeled **Factors & Prime Count** enables quiz questions that ask how many factors a given number has, reporting whether it is prime or composite.
 
+Difficulty for every topic evolves using your accuracy, average attempts and the time taken. Scores rise when accuracy stays above 80% with quick answers, but fall when accuracy dips below 60% and attempts or time grow large. This adaptive system now covers fractions, factor questions, prime factorization, HCF and LCM as well as the four basic operations.
+
 Multiplication problems begin with a slightly softer difficulty score so early sessions use smaller numbers until performance improves.
 
 After every quiz the app updates a single workbook named `AllSessions.xlsx` in the output folder. It contains a cumulative `Log` sheet, an `Index` sheet linking to each session's summary, and one `Summary_<number>` sheet per session.

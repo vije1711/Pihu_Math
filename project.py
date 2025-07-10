@@ -309,28 +309,76 @@ class Exam:
                     X, Y, Z = (n1, d1), (n2, d2), None
                     quiz = f"{n1}/{d1} + {n2}/{d2}"
                     Z = (total // g, l // g)
+                elif difficulty < 3.5:
+                    # subtraction or simplification
+                    choice = random.choice(["subtract", "simplify"])
+                    if choice == "subtract":
+                        d1 = random.randint(2, 9)
+                        d2 = random.choice([n for n in range(2, 10) if n != d1])
+                        n1 = random.randint(1, d1 - 1)
+                        n2 = random.randint(1, d2 - 1)
+                        l = lcm_of_numbers([d1, d2])
+                        total = n1 * (l // d1) - n2 * (l // d2)
+                        g = math.gcd(abs(total), l)
+                        X, Y, Z = (n1, d1), (n2, d2), None
+                        quiz = f"{n1}/{d1} - {n2}/{d2}"
+                        Z = (total // g, l // g)
+                    else:
+                        den = random.randint(4, 20)
+                        num = random.randint(2, den - 1)
+                        mult = random.randint(2, 5)
+                        X = num * mult
+                        Y = den * mult
+                        g = math.gcd(X, Y)
+                        quiz = f"Simplify {X}/{Y}"
+                        Z = (X // g, Y // g)
                 else:
-                    # simplify a fraction
-                    den = random.randint(4, 20)
-                    num = random.randint(2, den - 1)
-                    mult = random.randint(2, 5)
-                    X = num * mult
-                    Y = den * mult
-                    g = math.gcd(X, Y)
-                    quiz = f"Simplify {X}/{Y}"
-                    Z = (X // g, Y // g)
+                    # mixed numbers or multi-step problems
+                    d1 = random.randint(2, 9)
+                    d2 = random.choice([n for n in range(2, 10) if n != d1])
+                    w1 = random.randint(1, 4)
+                    n1 = random.randint(1, d1 - 1)
+                    n2 = random.randint(1, d2 - 1)
+                    l = lcm_of_numbers([d1, d2])
+                    total = (w1 * d1 + n1) * (l // d1) + n2 * (l // d2)
+                    g = math.gcd(total, l)
+                    X, Y, Z = (w1, n1, d1), (n2, d2), None
+                    quiz = f"{w1} {n1}/{d1} + {n2}/{d2}"
+                    Z = (total // g, l // g)
                 choices = None
                 break
             elif S == "factors_primes":
                 if difficulty < 1.5:
-                    X = random.randint(2, 20)
+                    X = random.randint(2, 30)
+                    quiz = f"List all factors of {X}"
+                    Z = factors_of(X)
+                    obj = cls(quiz, X, None, Z, S, choices)
+                    obj.mode = "list"
+                    obj.answer_actual = Z
+                    return obj
                 elif difficulty < 2.5:
                     X = random.randint(20, 100)
+                    quiz = f"How many factors does {X} have?"
+                    Z = factors_of(X)
+                    obj = cls(quiz, X, None, Z, S, choices)
+                    obj.mode = "count"
+                    return obj
+                elif difficulty < 3.5:
+                    X = random.randint(30, 200)
+                    quiz = f"Is {X} a prime number? (yes/no)"
+                    Z = factors_of(X)
+                    obj = cls(quiz, X, None, Z, S, choices)
+                    obj.mode = "prime"
+                    obj.answer_actual = is_prime(X)
+                    return obj
                 else:
-                    X = random.randint(100, 300)
-                quiz = f"How many factors does {X} have?"
-                Z = factors_of(X)
-                break
+                    X = random.randint(50, 300)
+                    quiz = f"Is {X} part of a twin prime pair? (yes/no)"
+                    Z = factors_of(X)
+                    obj = cls(quiz, X, None, Z, S, choices)
+                    obj.mode = "twin"
+                    obj.answer_actual = twin_prime_pair(X) is not None
+                    return obj
             elif S == "prime_factorization":
                 while True:
                     if difficulty < 1.5:
@@ -1476,7 +1524,7 @@ class GUI_Exam(Exam):
                     return
                 self.question_paper.answer_user = self.choice_var.get()
             else:
-                parsed = parse_fraction_input(self.input_user_answer.get())
+                parsed = parse_fraction_mixed_input(self.input_user_answer.get())
                 if parsed is None:
                     messagebox.showerror(
                         "Input Error",
@@ -1485,11 +1533,31 @@ class GUI_Exam(Exam):
                     return
                 self.question_paper.answer_user = parsed
         elif self.question_paper._S == "factors_primes":
-            if self.input_user_answer.get().isdecimal():
-                self.question_paper.answer_user = int(self.input_user_answer.get())
+            mode = getattr(self.question_paper, "mode", "count")
+            text = self.input_user_answer.get().strip()
+            if mode == "list":
+                parsed = parse_factor_input(text)
+                if parsed is None:
+                    messagebox.showerror(
+                        "Input Error",
+                        "Enter factors separated by ×, * or spaces",
+                    )
+                    return
+                self.question_paper.answer_user = sorted(parsed)
+            elif mode == "count":
+                if text.isdigit():
+                    self.question_paper.answer_user = int(text)
+                else:
+                    messagebox.showerror("Input Error", "Please type Numbers only!")
+                    return
             else:
-                messagebox.showerror("Input Error", "Please type Numbers only!")
-                return
+                if text.lower() in ["yes", "y", "1", "true"]:
+                    self.question_paper.answer_user = True
+                elif text.lower() in ["no", "n", "0", "false"]:
+                    self.question_paper.answer_user = False
+                else:
+                    messagebox.showerror("Input Error", "Please answer yes or no")
+                    return
         elif self.question_paper._S == "prime_factorization":
             parsed = parse_factor_input(self.input_user_answer.get())
             if parsed is None:
@@ -1515,9 +1583,17 @@ class GUI_Exam(Exam):
         self.stats[self.question_paper._S]["total_attempts"] += 1
 
         if self.question_paper._S == "factors_primes":
-            self.evaluation_result = (
-                self.question_paper.answer_user == self.question_paper.answer_actual
-            )
+            mode = getattr(self.question_paper, "mode", "count")
+            if mode == "list":
+                self.evaluation_result = sorted(self.question_paper.answer_user) == sorted(self.question_paper.answer_actual)
+            elif mode == "count":
+                self.evaluation_result = (
+                    self.question_paper.answer_user == len(self.question_paper.factors)
+                )
+            else:
+                self.evaluation_result = (
+                    bool(self.question_paper.answer_user) == bool(self.question_paper.answer_actual)
+                )
         elif self.question_paper._S == "prime_factorization":
             user = Counter(self.question_paper.answer_user)
             actual = Counter(self.question_paper.answer_actual)
@@ -1969,7 +2045,7 @@ class GUI_Exam(Exam):
             elif accuracy < 60 and avg_attempts >= 2.5 and avg_time > 45:
                 current -= 0.1
 
-            difficulty_scores[op] = max(0.5, current)
+            difficulty_scores[op] = current
 
     def make_excel_summary(self):
         self.update_difficulty_scores()
@@ -2298,6 +2374,19 @@ def parse_fraction_input(text: str):
     if den == 0:
         return None
     return num, den
+
+def parse_fraction_mixed_input(text: str):
+    """Parse simple fractions or mixed numbers like '1 1/2'."""
+    text = text.strip()
+    m = re.match(r"^(\d+)\s+(\d+)\s*/\s*(\d+)$", text)
+    if m:
+        whole = int(m.group(1))
+        num = int(m.group(2))
+        den = int(m.group(3))
+        if den == 0:
+            return None
+        return whole * den + num, den
+    return parse_fraction_input(text)
 
 
 def tell_grade(grade):
